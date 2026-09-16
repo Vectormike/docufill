@@ -1,0 +1,21 @@
+{
+	"name": "Docufill",
+	"short_name": "Docufill",
+	"description": "Fill forms once. Never fill them again.",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#f7f6ef",
+	"theme_color": "#f7c843",
+	"orientation": "portrait-primary",
+	"categories": ["productivity", "utilities"],
+	"icons": [
+		{
+			"src": "/icons/icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	]
+}
+

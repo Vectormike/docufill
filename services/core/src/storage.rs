@@ -125,11 +125,7 @@ impl StorageService {
             return Err(AppError::Upstream);
         }
         let signed: SignedUrlResponse = response.json().await.map_err(|_| AppError::Upstream)?;
-        Ok(format!(
-            "{}{}",
-            self.base_url.origin().ascii_serialization(),
-            signed.signed_url
-        ))
+        absolute_url(&self.base_url, &signed.signed_url)
     }
 
     pub async fn delete(&self, bucket: &str, path: &str) -> AppResult<()> {
@@ -163,5 +159,28 @@ impl StorageService {
             }
         }
         Ok(url)
+    }
+}
+
+/// Supabase returns signed URLs relative to the storage API root, so they must be
+/// resolved against that root rather than the project origin.
+fn absolute_url(base: &Url, signed_url: &str) -> AppResult<String> {
+    base.join(signed_url.trim_start_matches('/'))
+        .map(|url| url.to_string())
+        .map_err(|_| AppError::Upstream)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signed_urls_keep_the_storage_api_prefix() {
+        let base = Url::parse("https://project.supabase.co/storage/v1/").unwrap();
+
+        assert_eq!(
+            absolute_url(&base, "/object/sign/documents/owner/preview.pdf?token=abc").unwrap(),
+            "https://project.supabase.co/storage/v1/object/sign/documents/owner/preview.pdf?token=abc"
+        );
     }
 }

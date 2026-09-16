@@ -1,0 +1,29 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	handle /health {
+		reverse_proxy api:8080
+	}
+
+	handle /openapi.json {
+		reverse_proxy api:8080
+	}
+
+	handle /v1/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

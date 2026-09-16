@@ -9,12 +9,10 @@
 <main class="grid min-h-screen place-items-center px-5">
 	<section class="surface w-full max-w-lg p-7 text-center sm:p-10">
 		<div class="mb-8 flex justify-center"><BrandMark /></div>
-		<div
-			class="mx-auto grid size-16 place-items-center rounded-2xl bg-brand-soft text-brand-strong"
-		>
+		<div class="mx-auto grid size-16 place-items-center rounded-xl bg-brand-soft text-brand-strong">
 			<WifiOff size={28} />
 		</div>
-		<h1 class="mt-6 text-3xl font-extrabold tracking-[-0.04em] text-ink">You’re offline</h1>
+		<h1 class="mt-6 text-3xl font-semibold tracking-tight text-ink">You’re offline</h1>
 		<p class="mx-auto mt-3 max-w-sm text-sm leading-6 text-ink-muted">
 			Reconnect to open profiles, documents, signatures, or participant questions. Sensitive
 			information is deliberately never saved for offline use.

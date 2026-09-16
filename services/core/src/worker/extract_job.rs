@@ -13,7 +13,7 @@ use crate::{
     security::CryptoService,
 };
 
-const ANALYZER_VERSION: &str = "digital-pdf-v1";
+const ANALYZER_VERSION: &str = "digital-pdf-v4";
 const MAX_CONCURRENT_MAPPINGS: usize = 4;
 
 #[derive(FromRow)]
@@ -76,6 +76,14 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
         store_extraction(state, job.owner_id, &document.content_hash, &extracted).await?;
         (extracted, false)
     };
+    if let Some(subject) = super::document_title::suggest(&extracted) {
+        sqlx::query("update public.documents set subject = $2 where id = $1 and owner_id = $3")
+            .bind(job.document_id)
+            .bind(subject)
+            .bind(job.owner_id)
+            .execute(&state.pool)
+            .await?;
+    }
     sqlx::query("update public.documents set progress = 45 where id = $1")
         .bind(job.document_id)
         .execute(&state.pool)
@@ -89,7 +97,7 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
     .bind(job.owner_id)
     .fetch_all(&state.pool)
     .await?;
-    let facts = fact_records
+    let mut facts = fact_records
         .into_iter()
         .map(|fact| {
             let value = String::from_utf8(state.crypto.decrypt(&fact.value_ciphertext)?)
@@ -103,6 +111,22 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
         })
         .collect::<AppResult<Vec<_>>>()?;
     let profile_fact_ids: HashSet<_> = facts.iter().map(|fact| fact.id).collect();
+    if !facts.iter().any(|fact| fact.key == "full_name") {
+        let display_name = sqlx::query_scalar::<_, Option<String>>(
+            "select display_name from public.profiles where id = $1",
+        )
+        .bind(job.owner_id)
+        .fetch_one(&state.pool)
+        .await?;
+        if let Some(display_name) = display_name.filter(|name| !name.trim().is_empty()) {
+            facts.push(FactForMapping {
+                id: job.owner_id,
+                key: "full_name".to_owned(),
+                value: display_name,
+                allow_exact: true,
+            });
+        }
+    }
     let mapper = AiMapper::new(&state.config)?;
     let fields = unique_fields(extracted.fields);
     let memory_queries = fields
@@ -158,9 +182,7 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
         .await?;
     let mut needs_input = false;
     for (sort_order, field_id, field, mapping) in mapped {
-        let direct = mapping
-            .as_ref()
-            .is_some_and(|value| value.confidence == 1.0);
+        let direct = mapping.as_ref().is_some_and(|value| value.deterministic);
         let source = if mapping.is_none() {
             needs_input = true;
             "missing"

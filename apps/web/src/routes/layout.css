@@ -15,66 +15,33 @@
 	--color-positive: var(--positive);
 	--color-negative: var(--negative);
 	--color-warning: var(--warning);
-	--radius-card: 1.5rem;
-	--radius-control: 0.9rem;
+	--radius-card: 0.75rem;
+	--radius-control: 0.5rem;
 	--shadow-card: var(--card-shadow);
+	--font-weight-semibold: 550;
+	--font-weight-bold: 600;
+	--font-weight-extrabold: 700;
 }
 
 :root {
 	color-scheme: light;
-	--canvas: oklch(0.978 0.008 92);
-	--surface: oklch(0.995 0.004 92);
+	--canvas: oklch(0.984 0.003 90);
+	--surface: oklch(1 0 0);
 	--surface-raised: oklch(1 0 0);
-	--ink: oklch(0.205 0.018 78);
-	--ink-muted: oklch(0.48 0.02 78);
-	--line: oklch(0.89 0.014 90);
-	--brand: oklch(0.83 0.164 83);
-	--brand-strong: oklch(0.48 0.12 74);
-	--brand-soft: oklch(0.95 0.07 91);
-	--positive: oklch(0.59 0.14 157);
-	--negative: oklch(0.58 0.2 27);
-	--warning: oklch(0.67 0.16 62);
-	--card-shadow: 0 1px 2px rgb(48 39 14 / 4%), 0 18px 60px rgb(48 39 14 / 7%);
+	--ink: oklch(0.24 0.008 80);
+	--ink-muted: oklch(0.52 0.012 80);
+	--line: oklch(0.915 0.005 90);
+	--brand: oklch(0.84 0.155 84);
+	--brand-strong: oklch(0.47 0.105 72);
+	--brand-soft: oklch(0.965 0.035 92);
+	--positive: oklch(0.5 0.1 155);
+	--negative: oklch(0.52 0.17 27);
+	--warning: oklch(0.52 0.1 65);
+	--card-shadow: 0 1px 2px rgb(24 20 12 / 4%);
 	--ease-out-premium: cubic-bezier(0.16, 1, 0.3, 1);
 	--motion-fast: 140ms;
 	--motion-base: 240ms;
 	--motion-slow: 520ms;
-}
-
-:root[data-theme='dark'] {
-	color-scheme: dark;
-	--canvas: oklch(0.145 0.014 74);
-	--surface: oklch(0.185 0.014 74);
-	--surface-raised: oklch(0.218 0.016 74);
-	--ink: oklch(0.94 0.012 88);
-	--ink-muted: oklch(0.7 0.02 84);
-	--line: oklch(0.31 0.018 75);
-	--brand: oklch(0.84 0.157 84);
-	--brand-strong: oklch(0.9 0.14 89);
-	--brand-soft: oklch(0.27 0.055 78);
-	--positive: oklch(0.72 0.13 156);
-	--negative: oklch(0.7 0.17 25);
-	--warning: oklch(0.77 0.14 68);
-	--card-shadow: 0 1px 1px rgb(0 0 0 / 20%), 0 20px 60px rgb(0 0 0 / 28%);
-}
-
-@media (prefers-color-scheme: dark) {
-	:root:not([data-theme='light']) {
-		color-scheme: dark;
-		--canvas: oklch(0.145 0.014 74);
-		--surface: oklch(0.185 0.014 74);
-		--surface-raised: oklch(0.218 0.016 74);
-		--ink: oklch(0.94 0.012 88);
-		--ink-muted: oklch(0.7 0.02 84);
-		--line: oklch(0.31 0.018 75);
-		--brand: oklch(0.84 0.157 84);
-		--brand-strong: oklch(0.9 0.14 89);
-		--brand-soft: oklch(0.27 0.055 78);
-		--positive: oklch(0.72 0.13 156);
-		--negative: oklch(0.7 0.17 25);
-		--warning: oklch(0.77 0.14 68);
-		--card-shadow: 0 1px 1px rgb(0 0 0 / 20%), 0 20px 60px rgb(0 0 0 / 28%);
-	}
 }
 
 * {
@@ -91,13 +58,7 @@ html {
 body {
 	min-height: 100vh;
 	margin: 0;
-	background:
-		radial-gradient(
-			circle at 12% -10%,
-			color-mix(in oklch, var(--brand) 13%, transparent),
-			transparent 34rem
-		),
-		var(--canvas);
+	background: var(--canvas);
 	color: var(--ink);
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -123,8 +84,8 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-	outline: 3px solid color-mix(in oklch, var(--brand) 65%, white);
-	outline-offset: 3px;
+	outline: 2px solid var(--brand-strong);
+	outline-offset: 2px;
 }
 
 ::selection {
@@ -135,16 +96,14 @@ textarea:focus-visible {
 .surface {
 	border: 1px solid var(--line);
 	border-radius: var(--radius-card);
-	background: color-mix(in oklch, var(--surface-raised) 94%, transparent);
+	background: var(--surface);
 	box-shadow: var(--card-shadow);
 }
 
 .eyebrow {
-	font-size: 0.72rem;
-	font-weight: 800;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--brand-strong);
+	font-size: 0.78rem;
+	font-weight: 550;
+	color: var(--ink-muted);
 }
 
 .text-balance {
@@ -164,17 +123,17 @@ textarea:focus-visible {
 
 .prose-legal h1 {
 	margin: 0;
-	font-size: clamp(2.25rem, 7vw, 4rem);
-	font-weight: 800;
-	letter-spacing: -0.055em;
-	line-height: 1.02;
+	font-size: clamp(2rem, 5vw, 2.75rem);
+	font-weight: 650;
+	letter-spacing: -0.02em;
+	line-height: 1.1;
 }
 
 .prose-legal h2 {
 	margin: 2.25rem 0 0.65rem;
-	font-size: 1.2rem;
-	font-weight: 800;
-	letter-spacing: -0.025em;
+	font-size: 1.15rem;
+	font-weight: 650;
+	letter-spacing: -0.01em;
 }
 
 .prose-legal p,
@@ -197,7 +156,7 @@ textarea:focus-visible {
 
 .prose-legal a {
 	color: var(--brand-strong);
-	font-weight: 800;
+	font-weight: 600;
 	text-decoration: underline;
 	text-underline-offset: 0.2em;
 }

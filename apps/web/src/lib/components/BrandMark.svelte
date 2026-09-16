@@ -28,7 +28,7 @@
 		<span
 			class:text-2xl={size === 'lg'}
 			class:text-base={size === 'sm'}
-			class="font-extrabold tracking-[-0.04em] text-ink"
+			class="font-semibold tracking-tight text-ink"
 		>
 			Docufill
 		</span>

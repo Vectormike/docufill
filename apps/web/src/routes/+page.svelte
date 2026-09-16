@@ -7,7 +7,6 @@
 	import BrandMark from '$lib/components/BrandMark.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import FeatureIllustration from '$lib/components/FeatureIllustration.svelte';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { isSupabaseConfigured } from '$lib/supabase';
 
 	const features = [
@@ -97,17 +96,14 @@
 <main class="min-h-screen">
 	<header class="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
 		<BrandMark size="sm" />
-		<div class="flex items-center gap-2">
-			{#if signedIn}
-				<a
-					href={resolve('/documents')}
-					class="hidden min-h-11 items-center gap-2 rounded-control px-4 py-2.5 text-sm font-bold text-ink sm:inline-flex"
-				>
-					My documents <ArrowRight size={16} />
-				</a>
-			{/if}
-			<ThemeToggle />
-		</div>
+		{#if signedIn}
+			<a
+				href={resolve('/documents')}
+				class="hidden min-h-11 items-center gap-2 rounded-control px-4 py-2.5 text-sm font-bold text-ink sm:inline-flex"
+			>
+				My documents <ArrowRight size={16} />
+			</a>
+		{/if}
 	</header>
 
 	<section
@@ -117,12 +113,12 @@
 			<div class:logo-drop={animateLogo} class="mb-8 inline-flex">
 				<BrandMark size="lg" showWordmark={false} />
 			</div>
-			<p class="eyebrow mb-4">Your personal document agent</p>
+			<p class="eyebrow mb-3">Your personal document agent</p>
 			<h1
-				class="text-5xl leading-[0.98] font-extrabold tracking-[-0.06em] text-balance text-ink sm:text-6xl"
+				class="text-4xl leading-[1.05] font-semibold tracking-tight text-balance text-ink sm:text-5xl"
 			>
 				Fill forms once.
-				<span class="text-brand-strong">Never fill them again.</span>
+				<span class="text-ink-muted">Never fill them again.</span>
 			</h1>
 			<p class="mt-6 max-w-lg text-lg leading-8 text-balance text-ink-muted">
 				Upload a digital PDF. Docufill finds the questions, reuses your confirmed details, and asks
@@ -147,10 +143,10 @@
 			>
 				<FeatureIllustration feature={features[current].key} />
 				<div class="px-3 pt-6 pb-3 sm:px-5">
-					<p class="mb-2 text-xs font-extrabold tracking-[0.16em] text-brand-strong uppercase">
+					<p class="mb-1.5 text-xs text-ink-muted">
 						{current + 1} of {features.length}
 					</p>
-					<h2 class="text-2xl font-extrabold tracking-[-0.04em] text-ink">
+					<h2 class="text-xl font-semibold tracking-tight text-ink">
 						{features[current].title}
 					</h2>
 					<p class="mt-2 min-h-14 text-sm leading-6 text-ink-muted">{features[current].body}</p>
@@ -188,16 +184,13 @@
 	<section id="sign-in" class="mx-auto max-w-6xl px-5 pb-14 sm:px-8">
 		<div class="surface grid gap-7 p-6 sm:p-8 lg:grid-cols-[1fr_1.05fr] lg:items-center">
 			<div>
-				<p class="eyebrow mb-2">Start with what is needed</p>
-				<h2 class="text-3xl font-extrabold tracking-[-0.045em] text-ink">
-					Your profile grows with you.
-				</h2>
+				<h2 class="text-2xl font-semibold tracking-tight text-ink">Your profile grows with you.</h2>
 				<p class="mt-3 max-w-md text-sm leading-6 text-ink-muted">
 					We begin with your verified name and email. No long onboarding form and no speculative
 					personal data collection.
 				</p>
 			</div>
-			<div class="rounded-2xl border border-line bg-canvas p-4 sm:p-5">
+			<div class="rounded-control border border-line bg-canvas p-4 sm:p-5">
 				{#if signedIn}
 					<Button class="w-full" onclick={() => goto(resolve('/documents'))}>
 						Continue to my documents <ArrowRight size={17} />
@@ -237,12 +230,12 @@
 				<p class="mt-4 text-xs leading-5 text-ink-muted">
 					By continuing, you acknowledge our <a
 						href={resolve('/privacy')}
-						class="font-extrabold text-brand-strong underline underline-offset-2">privacy notice</a
+						class="font-semibold text-brand-strong underline underline-offset-2">privacy notice</a
 					>
 					and agree to use Docufill only for
 					<a
 						href={resolve('/acceptable-use')}
-						class="font-extrabold text-brand-strong underline underline-offset-2"
+						class="font-semibold text-brand-strong underline underline-offset-2"
 						>supported, non-regulated documents</a
 					>.
 				</p>

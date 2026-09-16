@@ -82,7 +82,7 @@
 
 	<div class="p-5 sm:p-7">
 		<p class="text-xs font-bold text-ink-muted">Page {field.page_number} · {field.kind}</p>
-		<h2 class="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-balance text-ink">
+		<h2 class="mt-2 text-2xl font-semibold tracking-tight text-balance text-ink">
 			{field.label}
 		</h2>
 		{#if field.instructions}

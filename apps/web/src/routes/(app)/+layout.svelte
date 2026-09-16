@@ -8,7 +8,6 @@
 	import BrandMark from '$lib/components/BrandMark.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import InstallPrompt from '$lib/components/InstallPrompt.svelte';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { getSupabase, isSupabaseConfigured } from '$lib/supabase';
 
 	let { children }: { children: Snippet } = $props();
@@ -63,7 +62,7 @@
 		</section>
 	</main>
 {:else}
-	<div class="min-h-screen pb-24 lg:pb-0">
+	<div class="min-h-dvh pb-24 lg:pb-0">
 		<header class="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur-xl">
 			<div class="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 sm:px-8">
 				<a href={resolve('/documents')} aria-label="Docufill documents"><BrandMark size="sm" /></a>
@@ -74,10 +73,10 @@
 					{#each navigation as item (item.href)}
 						<a
 							href={resolve(item.href)}
-							class="flex min-h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-bold transition {page.url.pathname.startsWith(
+							class="flex min-h-10 items-center gap-2 rounded-control px-3.5 text-sm font-medium transition {page.url.pathname.startsWith(
 								item.href
 							)
-								? 'bg-brand-soft text-ink'
+								? 'bg-canvas text-ink'
 								: 'text-ink-muted hover:text-ink'}"
 							aria-current={page.url.pathname.startsWith(item.href) ? 'page' : undefined}
 						>
@@ -88,7 +87,6 @@
 				</nav>
 				<div class="flex items-center gap-1.5">
 					<InstallPrompt />
-					<ThemeToggle />
 					<Button
 						variant="ghost"
 						onclick={logout}
@@ -104,30 +102,35 @@
 
 		{@render children()}
 
-		<nav
-			class="fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 gap-1 rounded-2xl border border-line bg-surface-raised/95 p-1.5 shadow-card backdrop-blur-xl lg:hidden"
-			aria-label="Mobile navigation"
+		<div
+			class="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 lg:hidden"
+			style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))"
 		>
-			{#each navigation as item (item.href)}
-				<a
-					href={resolve(item.href)}
-					class="flex min-h-13 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-bold {page.url.pathname.startsWith(
-						item.href
-					)
-						? 'bg-brand-soft text-ink'
-						: 'text-ink-muted'}"
-					aria-current={page.url.pathname.startsWith(item.href) ? 'page' : undefined}
-				>
-					<item.icon size={19} />
-					{item.label}
-				</a>
-			{/each}
-			<a
-				href={resolve('/documents/new')}
-				class="flex min-h-13 flex-col items-center justify-center gap-1 rounded-xl bg-brand text-[11px] font-extrabold text-[#211d14]"
+			<nav
+				class="pointer-events-auto grid grid-cols-4 gap-1 rounded-xl border border-line bg-surface-raised/95 p-1.5 shadow-card backdrop-blur-xl"
+				aria-label="Mobile navigation"
 			>
-				<FilePlus2 size={19} /> New document
-			</a>
-		</nav>
+				{#each navigation as item (item.href)}
+					<a
+						href={resolve(item.href)}
+						class="flex min-h-13 flex-col items-center justify-center gap-1 rounded-control text-[11px] font-medium {page.url.pathname.startsWith(
+							item.href
+						)
+							? 'bg-canvas text-ink'
+							: 'text-ink-muted'}"
+						aria-current={page.url.pathname.startsWith(item.href) ? 'page' : undefined}
+					>
+						<item.icon size={19} />
+						{item.label}
+					</a>
+				{/each}
+				<a
+					href={resolve('/documents/new')}
+					class="flex min-h-13 flex-col items-center justify-center gap-1 rounded-control bg-brand text-[11px] font-semibold text-[#211d14]"
+				>
+					<FilePlus2 size={19} /> New document
+				</a>
+			</nav>
+		</div>
 	</div>
 {/if}

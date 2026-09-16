@@ -36,17 +36,15 @@ test('reduced motion removes long onboarding animation', async ({ page }) => {
 	expect(duration).toBeLessThanOrEqual(0.01);
 });
 
-test('dark theme remains accessible', async ({ page }) => {
+test('the app renders in light mode only', async ({ page }) => {
+	await page.emulateMedia({ colorScheme: 'dark' });
 	await page.goto('/');
-	await page.getByRole('button', { name: 'Switch to dark theme' }).click();
-	await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-	const accessibility = await new AxeBuilder({ page }).analyze();
-	expect(
-		accessibility.violations.filter(
-			(violation) => violation.impact === 'critical' || violation.impact === 'serious'
-		)
-	).toEqual([]);
+	const canvas = await page
+		.locator('body')
+		.evaluate((element) => getComputedStyle(element).colorScheme);
+	expect(canvas).toBe('light');
+	await expect(page.getByRole('button', { name: /dark theme/i })).toHaveCount(0);
 });
 
 test('privacy, scope, and PWA metadata are public', async ({ page, request }) => {
@@ -66,7 +64,7 @@ test('privacy, scope, and PWA metadata are public', async ({ page, request }) =>
 	expect(metadata).toMatchObject({
 		name: 'Docufill',
 		display: 'standalone',
-		theme_color: '#f7c843'
+		theme_color: '#fbfaf8'
 	});
 	for (const icon of metadata.icons as Array<{ src: string }>) {
 		expect((await request.get(icon.src)).ok()).toBe(true);

@@ -83,7 +83,7 @@ impl CopilotSummary {
                 .count(),
             ambiguous_fields: fields
                 .iter()
-                .filter(|field| field.confidence.is_some_and(|value| value < 0.75))
+                .filter(|field| field.source == "ai_draft")
                 .count(),
             signature_fields: fields
                 .iter()

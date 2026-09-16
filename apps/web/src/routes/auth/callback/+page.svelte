@@ -9,9 +9,14 @@
 
 	onMount(async () => {
 		try {
-			const code = new URL(window.location.href).searchParams.get('code');
+			const params = new URL(window.location.href).searchParams;
+			const code = params.get('code');
 			if (code) {
-				const { error: exchangeError } = await getSupabase().auth.exchangeCodeForSession(code);
+				const flowId = params.get('sb_flow_id');
+				const { error: exchangeError } = await getSupabase().auth.exchangeCodeForSession(
+					code,
+					flowId ? { flowId } : undefined
+				);
 				if (exchangeError) throw exchangeError;
 			}
 			const { data } = await getSupabase().auth.getSession();

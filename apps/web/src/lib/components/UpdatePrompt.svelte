@@ -42,7 +42,7 @@
 
 {#if waiting}
 	<div
-		class="fixed inset-x-3 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border border-line bg-surface-raised p-3 pl-4 shadow-card"
+		class="fixed inset-x-3 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl border border-line bg-surface-raised p-3 pl-4 shadow-card"
 		role="status"
 	>
 		<p class="text-sm font-semibold text-ink">A safer, newer Docufill is ready.</p>

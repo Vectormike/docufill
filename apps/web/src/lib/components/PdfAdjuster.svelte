@@ -191,7 +191,7 @@
 		{#if error}<p class="mt-3 text-sm font-semibold text-negative" role="alert">{error}</p>{/if}
 	</div>
 
-	<aside class="rounded-2xl border border-line bg-canvas p-4">
+	<aside class="rounded-xl border border-line bg-canvas p-4">
 		<div class="flex items-center gap-2">
 			<Move size={17} class="text-brand-strong" />
 			<h3 class="font-extrabold text-ink">Field placement</h3>

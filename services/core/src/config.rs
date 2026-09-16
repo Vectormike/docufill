@@ -44,7 +44,9 @@ impl Config {
             api_bind: optional("API_BIND", "127.0.0.1:8080")
                 .parse()
                 .map_err(|_| AppError::configuration("API_BIND must be a socket address"))?,
-            web_origin: optional("WEB_ORIGIN", "http://localhost:5173"),
+            web_origin: optional("WEB_ORIGIN", "http://localhost:5173")
+                .trim_end_matches('/')
+                .to_owned(),
             database_url: required("DATABASE_URL")?,
             supabase_url: required("SUPABASE_URL")?.trim_end_matches('/').to_owned(),
             supabase_anon_key: required("SUPABASE_ANON_KEY")?,

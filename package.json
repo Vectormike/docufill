@@ -1,0 +1,21 @@
+{
+  "name": "docufill",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "pnpm": {
+    "overrides": {
+      "cookie@0.6.0": "0.7.2"
+    }
+  },
+  "scripts": {
+    "dev": "pnpm --filter @docufill/web dev",
+    "dev:api": "cargo run -p docufill-core --bin api",
+    "dev:worker": "cargo run -p docufill-core --bin worker",
+    "build": "pnpm --filter @docufill/web build",
+    "check": "pnpm --filter @docufill/web check",
+    "lint": "pnpm --filter @docufill/web lint",
+    "test": "cargo test --workspace && pnpm --filter @docufill/web test",
+    "api:generate": "cargo run -q -p docufill-core --bin openapi > apps/web/src/lib/api/generated/openapi.json && pnpm --filter @docufill/web exec openapi-typescript src/lib/api/generated/openapi.json -o src/lib/api/generated/schema.d.ts"
+  }
+}
+

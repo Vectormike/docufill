@@ -1,0 +1,9 @@
+[workspace]
+members = ["services/core"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "UNLICENSED"
+rust-version = "1.98"
+

@@ -1,0 +1,24 @@
+.DS_Store
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# JavaScript / SvelteKit
+node_modules/
+.svelte-kit/
+build/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Rust
+target/
+
+# Local services and tooling
+.local/
+supabase/.temp/
+*.log
+

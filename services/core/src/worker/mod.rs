@@ -1,3 +1,4 @@
+mod document_title;
 mod embed_job;
 mod extract_job;
 mod render_job;
@@ -5,6 +6,9 @@ mod render_job;
 use std::time::Duration;
 
 use crate::{AppError, AppResult, AppState, models::ProcessingJob, pdf::PdfEngine};
+
+const INITIAL_FAILURE_BACKOFF: Duration = Duration::from_secs(2);
+const MAX_FAILURE_BACKOFF: Duration = Duration::from_secs(30);
 
 pub struct Worker {
     state: AppState,
@@ -30,20 +34,28 @@ impl Worker {
 
     pub async fn run(self) -> AppResult<()> {
         tracing::info!(worker_id = %self.worker_id, "document worker started");
+        let mut failure_backoff = INITIAL_FAILURE_BACKOFF;
         loop {
             tokio::select! {
-                result = tokio::signal::ctrl_c() => {
-                    result.map_err(AppError::internal)?;
+                _ = crate::shutdown_signal() => {
                     tracing::info!("document worker stopping");
                     return Ok(());
                 }
                 result = self.run_once() => {
                     match result {
-                        Ok(true) => {}
-                        Ok(false) => tokio::time::sleep(Duration::from_millis(750)).await,
+                        Ok(true) => failure_backoff = INITIAL_FAILURE_BACKOFF,
+                        Ok(false) => {
+                            failure_backoff = INITIAL_FAILURE_BACKOFF;
+                            tokio::time::sleep(Duration::from_millis(750)).await;
+                        }
                         Err(error) => {
-                            tracing::error!(?error, "worker loop failed");
-                            tokio::time::sleep(Duration::from_secs(2)).await;
+                            tracing::error!(
+                                ?error,
+                                retry_in_seconds = failure_backoff.as_secs(),
+                                "worker loop failed"
+                            );
+                            tokio::time::sleep(failure_backoff).await;
+                            failure_backoff = next_failure_backoff(failure_backoff);
                         }
                     }
                 }
@@ -159,4 +171,29 @@ fn error_code(error: &AppError) -> &'static str {
 
 fn hostname() -> String {
     std::env::var("HOSTNAME").unwrap_or_else(|_| "worker".to_owned())
+}
+
+fn next_failure_backoff(current: Duration) -> Duration {
+    current.saturating_mul(2).min(MAX_FAILURE_BACKOFF)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn worker_failure_backoff_is_capped() {
+        assert_eq!(
+            next_failure_backoff(INITIAL_FAILURE_BACKOFF),
+            Duration::from_secs(4)
+        );
+        assert_eq!(
+            next_failure_backoff(Duration::from_secs(16)),
+            MAX_FAILURE_BACKOFF
+        );
+        assert_eq!(
+            next_failure_backoff(MAX_FAILURE_BACKOFF),
+            MAX_FAILURE_BACKOFF
+        );
+    }
 }

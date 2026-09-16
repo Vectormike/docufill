@@ -17,7 +17,10 @@ export function getSupabase(): SupabaseClient {
 	}
 	client ??= createBrowserClient(url, key, {
 		auth: {
-			detectSessionInUrl: false
+			detectSessionInUrl: false,
+			experimental: {
+				appendPkceFlowIdToRedirects: true
+			}
 		}
 	});
 	return client;

@@ -187,7 +187,7 @@
 	{:else if landing}
 		<div class="mb-7">
 			<p class="eyebrow mb-2">Private participant workspace</p>
-			<h1 class="text-3xl font-extrabold tracking-[-0.045em] text-balance text-ink">
+			<h1 class="text-3xl font-semibold tracking-tight text-balance text-ink">
 				{landing.document_subject}
 			</h1>
 			<p class="mt-2 text-sm text-ink-muted">
@@ -340,11 +340,11 @@
 		{:else if step === 'receipt'}
 			<section class="surface p-8 text-center sm:p-10">
 				<div
-					class="mx-auto grid size-16 place-items-center rounded-2xl bg-positive/10 text-positive"
+					class="mx-auto grid size-16 place-items-center rounded-xl bg-positive/10 text-positive"
 				>
 					<CheckCircle2 size={30} />
 				</div>
-				<h2 class="mt-5 text-3xl font-extrabold tracking-tight text-ink">
+				<h2 class="mt-5 text-xl font-semibold tracking-tight text-ink">
 					Your section is submitted
 				</h2>
 				<p class="mt-2 text-sm text-ink-muted">

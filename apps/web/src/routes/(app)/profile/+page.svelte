@@ -145,11 +145,10 @@
 
 <main class="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
 	<div>
-		<p class="eyebrow mb-2">Personal knowledge vault</p>
-		<h1 class="text-4xl font-extrabold tracking-[-0.055em] text-ink">Your confirmed details</h1>
-		<p class="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">
-			Add information as documents need it. Exact facts stay separate from calculations and AI
-			drafts.
+		<h1 class="text-2xl font-semibold tracking-tight text-ink">Your details</h1>
+		<p class="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
+			Save your information once so Docufill can reuse it in future documents. You always control
+			what is stored.
 		</p>
 	</div>
 
@@ -176,11 +175,11 @@
 					<img
 						src={vault.profile.avatar_url}
 						alt=""
-						class="size-16 rounded-2xl border border-line object-cover"
+						class="size-16 rounded-xl border border-line object-cover"
 						referrerpolicy="no-referrer"
 					/>
 				{:else}
-					<div class="grid size-16 place-items-center rounded-2xl bg-brand-soft text-brand-strong">
+					<div class="grid size-16 place-items-center rounded-xl bg-brand-soft text-brand-strong">
 						<UserRound size={27} />
 					</div>
 				{/if}
@@ -208,7 +207,7 @@
 				<div>
 					<h2 class="text-xl font-extrabold text-ink">Reusable information</h2>
 					<p class="mt-1 text-xs text-ink-muted">
-						Sensitive values are encrypted and masked in previews.
+						Choose a detail such as “Current employer,” then enter your answer, such as “Bujeti.”
 					</p>
 				</div>
 				<Button onclick={() => (showFactEditor = true)} disabled={showFactEditor}>
@@ -223,7 +222,7 @@
 			{/if}
 
 			{#if groupedFacts.length === 0 && !showFactEditor}
-				<div class="mt-6 rounded-2xl border border-dashed border-line bg-canvas p-8 text-center">
+				<div class="mt-6 rounded-xl border border-dashed border-line bg-canvas p-8 text-center">
 					<p class="font-bold text-ink">No reusable details yet</p>
 					<p class="mt-1 text-sm text-ink-muted">
 						Docufill can also suggest details as your first document asks for them.

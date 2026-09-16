@@ -5,7 +5,6 @@ const MAX_PDF_BYTES = 25 * 1024 * 1024;
 
 export async function uploadDocument(
 	file: File,
-	subject: string,
 	onProgress: (progress: number, stage: string) => void
 ) {
 	validatePdf(file);
@@ -31,7 +30,7 @@ export async function uploadDocument(
 	onProgress(76, 'Starting document analysis');
 	try {
 		const document = await api.createDocument({
-			subject: subject.trim(),
+			subject: subjectFromFilename(file.name),
 			original_name: file.name,
 			original_storage_path: storagePath,
 			content_hash: contentHash
@@ -42,6 +41,18 @@ export async function uploadDocument(
 		await getSupabase().storage.from('documents').remove([storagePath]);
 		throw error;
 	}
+}
+
+export function subjectFromFilename(filename: string) {
+	const cleaned = filename
+		.replace(/\.pdf$/i, '')
+		.replace(/[-_]+/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+	const concise =
+		cleaned.match(/^(.+?\b(?:form|application|agreement|questionnaire|contract)\b)/i)?.[1] ??
+		cleaned;
+	return concise.slice(0, 100) || 'Untitled document';
 }
 
 export function validatePdf(file: File) {

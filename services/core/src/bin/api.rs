@@ -13,7 +13,7 @@ async fn main() -> AppResult<()> {
 
     tracing::info!(%bind, "Docufill API listening");
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(docufill_core::shutdown_signal())
         .await
         .map_err(docufill_core::AppError::internal)
 }
@@ -26,10 +26,4 @@ fn init_tracing() {
         .json()
         .with_target(false)
         .init();
-}
-
-async fn shutdown_signal() {
-    if let Err(error) = tokio::signal::ctrl_c().await {
-        tracing::error!(?error, "failed to install shutdown signal");
-    }
 }

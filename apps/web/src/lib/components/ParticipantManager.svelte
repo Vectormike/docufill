@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, Copy, Mail, Trash2, UserPlus, UsersRound } from '@lucide/svelte';
+	import { Check, Copy, Trash2, UserPlus, UsersRound } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 	import {
 		api,
@@ -8,6 +8,7 @@
 		type ParticipantSummary
 	} from '$lib/api/client';
 	import Button from './Button.svelte';
+	import ParticipantInviteForm from './ParticipantInviteForm.svelte';
 
 	let {
 		documentId,
@@ -21,14 +22,10 @@
 
 	let participants = $state<ParticipantSummary[]>([]);
 	let showForm = $state(false);
-	let name = $state('');
-	let email = $state('');
-	let role = $state('guarantor');
 	let loading = $state(false);
 	let error = $state('');
 	let invitation = $state<ParticipantInvitation | null>(null);
 	let copied = $state(false);
-	let selectedFieldIds = $state<string[]>([]);
 
 	onMount(() => void load());
 
@@ -40,23 +37,21 @@
 		}
 	}
 
-	async function invite(event: SubmitEvent) {
-		event.preventDefault();
+	async function invite(input: {
+		display_name: string;
+		contact: string;
+		role: string;
+		field_ids: string[];
+	}) {
 		loading = true;
 		error = '';
 		try {
 			invitation = await api.inviteParticipant(documentId, {
-				display_name: name.trim(),
-				contact: email.trim(),
-				role,
-				field_ids: selectedFieldIds,
+				...input,
 				send_invitation: true
 			});
 			participants = [...participants, invitation.participant];
-			for (const fieldId of selectedFieldIds) onassignment(fieldId, invitation.participant.id);
-			name = '';
-			email = '';
-			selectedFieldIds = [];
+			for (const fieldId of input.field_ids) onassignment(fieldId, invitation.participant.id);
 			showForm = false;
 		} catch (cause) {
 			error = cause instanceof Error ? cause.message : 'The invitation could not be created.';
@@ -116,82 +111,16 @@
 			{error}
 		</p>{/if}
 	{#if showForm}
-		<form
-			class="mt-5 grid gap-3 rounded-2xl border border-line bg-canvas p-4 sm:grid-cols-2"
-			onsubmit={invite}
-		>
-			<label class="text-xs font-extrabold tracking-wider text-ink-muted uppercase">
-				Name
-				<input
-					required
-					minlength="2"
-					maxlength="100"
-					bind:value={name}
-					class="mt-2 min-h-11 w-full rounded-control border-line bg-surface-raised text-sm text-ink"
-				/>
-			</label>
-			<label class="text-xs font-extrabold tracking-wider text-ink-muted uppercase">
-				Email
-				<input
-					required
-					type="email"
-					bind:value={email}
-					class="mt-2 min-h-11 w-full rounded-control border-line bg-surface-raised text-sm text-ink"
-				/>
-			</label>
-			<label class="text-xs font-extrabold tracking-wider text-ink-muted uppercase">
-				Role
-				<select
-					bind:value={role}
-					class="mt-2 min-h-11 w-full rounded-control border-line bg-surface-raised text-sm text-ink"
-				>
-					<option value="guarantor">Guarantor</option>
-					<option value="co_applicant">Co-applicant</option>
-					<option value="other">Other participant</option>
-				</select>
-			</label>
-			<fieldset class="sm:col-span-2">
-				<legend class="text-xs font-extrabold tracking-wider text-ink-muted uppercase"
-					>Questions to assign</legend
-				>
-				<div
-					class="mt-2 grid max-h-48 gap-1 overflow-y-auto rounded-xl border border-line bg-surface-raised p-2 sm:grid-cols-2"
-				>
-					{#each fields as field (field.id)}
-						<label
-							class="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-sm font-semibold text-ink hover:bg-brand-soft"
-						>
-							<input
-								type="checkbox"
-								checked={selectedFieldIds.includes(field.id)}
-								onchange={(event) => {
-									selectedFieldIds = event.currentTarget.checked
-										? [...selectedFieldIds, field.id]
-										: selectedFieldIds.filter((id) => id !== field.id);
-								}}
-								class="rounded border-line text-brand"
-							/>
-							<span class="min-w-0">
-								<span class="block truncate">{field.label}</span>
-								<span class="block text-[10px] text-ink-muted"
-									>Page {field.page_number} · {field.kind}</span
-								>
-							</span>
-						</label>
-					{/each}
-				</div>
-			</fieldset>
-			<div class="flex items-end justify-end gap-2">
-				<Button type="button" variant="ghost" onclick={() => (showForm = false)}>Cancel</Button>
-				<Button type="submit" {loading} disabled={selectedFieldIds.length === 0}
-					><Mail size={16} /> Send invite</Button
-				>
-			</div>
-		</form>
+		<ParticipantInviteForm
+			{fields}
+			{loading}
+			oninvite={invite}
+			oncancel={() => (showForm = false)}
+		/>
 	{/if}
 
 	{#if invitation}
-		<div class="mt-5 rounded-2xl border border-positive/25 bg-positive/8 p-4">
+		<div class="mt-5 rounded-xl border border-positive/25 bg-positive/8 p-4">
 			<p class="flex items-center gap-2 text-sm font-extrabold text-positive">
 				<Check size={16} /> Invitation created
 			</p>

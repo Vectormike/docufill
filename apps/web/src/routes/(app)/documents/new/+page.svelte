@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { ArrowLeft, FileText, LockKeyhole, UploadCloud, X } from '@lucide/svelte';
+	import { ArrowLeft, FileText, LockKeyhole, Sparkles, UploadCloud, X } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { api } from '$lib/api/client';
 	import Button from '$lib/components/Button.svelte';
-	import { uploadDocument, validatePdf } from '$lib/documents';
+	import { subjectFromFilename, uploadDocument, validatePdf } from '$lib/documents';
 
 	let file = $state<File | null>(null);
 	let subject = $state('');
+	let naming = $state(false);
 	let context = $state('');
 	let acknowledged = $state(false);
 	let dragging = $state(false);
@@ -15,6 +16,7 @@
 	let progress = $state(0);
 	let stage = $state('');
 	let error = $state('');
+	let namingVersion = 0;
 
 	function choose(candidate?: File) {
 		if (!candidate) return;
@@ -22,10 +24,33 @@
 		try {
 			validatePdf(candidate);
 			file = candidate;
-			if (!subject) subject = candidate.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ');
+			void typeSubject(subjectFromFilename(candidate.name));
 		} catch (cause) {
 			error = cause instanceof Error ? cause.message : 'Choose a valid PDF.';
 		}
+	}
+
+	async function typeSubject(nextSubject: string) {
+		const version = ++namingVersion;
+		subject = '';
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			subject = nextSubject;
+			return;
+		}
+		naming = true;
+		for (const character of nextSubject) {
+			await new Promise((resolveDelay) => window.setTimeout(resolveDelay, 24));
+			if (version !== namingVersion) return;
+			subject += character;
+		}
+		naming = false;
+	}
+
+	function removeFile() {
+		namingVersion += 1;
+		naming = false;
+		subject = '';
+		file = null;
 	}
 
 	function drop(event: DragEvent) {
@@ -40,7 +65,7 @@
 		error = '';
 		uploading = true;
 		try {
-			const document = await uploadDocument(file, subject, (nextProgress, nextStage) => {
+			const document = await uploadDocument(file, (nextProgress, nextStage) => {
 				progress = nextProgress;
 				stage = nextStage;
 			});
@@ -63,30 +88,29 @@
 		<ArrowLeft size={17} /> Documents
 	</a>
 	<div class="mt-5">
-		<p class="eyebrow mb-2">New document</p>
-		<h1 class="text-4xl font-extrabold tracking-[-0.055em] text-ink">What are we filling?</h1>
-		<p class="mt-2 text-sm leading-6 text-ink-muted">
+		<h1 class="text-2xl font-semibold tracking-tight text-ink">New document</h1>
+		<p class="mt-1 text-sm leading-6 text-ink-muted">
 			Upload a fillable or text-based PDF. Your original remains unchanged in private storage.
 		</p>
 	</div>
 
 	<form class="mt-8 space-y-5" onsubmit={submit}>
 		<section class="surface p-5 sm:p-7">
-			<label for="subject" class="text-sm font-extrabold text-ink">Document subject</label>
-			<p class="mt-1 text-xs text-ink-muted">
-				This is the only document detail invited participants may see.
-			</p>
+			<label for="subject" class="flex items-center gap-2 text-sm font-extrabold text-ink">
+				<Sparkles size={17} class="text-brand-strong" /> Document name
+			</label>
+			<p class="mt-1 text-xs text-ink-muted">Choose a PDF and Docufill will name it for you.</p>
 			<input
 				id="subject"
-				required
-				maxlength="200"
-				bind:value={subject}
-				placeholder="e.g. Apartment guarantor form"
+				readonly
+				value={subject}
+				placeholder="Waiting for a PDF…"
 				class="mt-3 min-h-12 w-full rounded-control border-line bg-canvas text-ink placeholder:text-ink-muted/60"
 			/>
+			{#if naming}<p class="mt-2 text-xs font-semibold text-brand-strong">Naming document…</p>{/if}
 
 			<label
-				class="mt-6 grid min-h-64 cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-6 text-center transition {dragging
+				class="mt-6 grid min-h-64 cursor-pointer place-items-center rounded-xl border-2 border-dashed p-6 text-center transition {dragging
 					? 'border-brand bg-brand-soft'
 					: 'border-line bg-canvas hover:border-brand'}"
 				ondragover={(event) => {
@@ -104,9 +128,7 @@
 				/>
 				{#if file}
 					<div>
-						<div
-							class="mx-auto grid size-14 place-items-center rounded-2xl bg-brand text-[#211d14]"
-						>
+						<div class="mx-auto grid size-14 place-items-center rounded-xl bg-brand text-[#211d14]">
 							<FileText size={25} />
 						</div>
 						<p class="mt-4 font-extrabold text-ink">{file.name}</p>
@@ -117,7 +139,7 @@
 							type="button"
 							onclick={(event) => {
 								event.preventDefault();
-								file = null;
+								removeFile();
 							}}
 							class="mt-4 inline-flex min-h-11 items-center gap-2 rounded-control px-3 text-sm font-bold text-negative"
 						>
@@ -127,7 +149,7 @@
 				{:else}
 					<div>
 						<div
-							class="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand-strong"
+							class="mx-auto grid size-14 place-items-center rounded-xl bg-brand-soft text-brand-strong"
 						>
 							<UploadCloud size={26} />
 						</div>

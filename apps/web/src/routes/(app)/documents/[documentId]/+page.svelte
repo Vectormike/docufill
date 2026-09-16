@@ -218,6 +218,10 @@
 		window.location.assign(url);
 	}
 
+	function openPreview() {
+		if (previewUrl) window.open(previewUrl, '_blank', 'noopener');
+	}
+
 	async function deleteDocument() {
 		if (
 			!confirm('Permanently delete this document, its answers, participants, and generated files?')
@@ -301,15 +305,14 @@
 	{:else if detail}
 		<header class="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 			<div>
-				<p class="eyebrow mb-2">Document workspace</p>
-				<h1 class="text-3xl font-extrabold tracking-[-0.05em] text-balance text-ink sm:text-4xl">
+				<h1 class="text-xl font-semibold tracking-tight text-balance text-ink sm:text-2xl">
 					{detail.subject}
 				</h1>
-				<p class="mt-2 text-xs text-ink-muted">{detail.original_name}</p>
+				<p class="mt-1 text-xs text-ink-muted">{detail.original_name}</p>
 			</div>
 			<div class="flex items-center gap-2">
 				<span
-					class="w-fit rounded-full bg-brand-soft px-3 py-1.5 text-xs font-extrabold text-brand-strong"
+					class="w-fit rounded-control border border-line px-2.5 py-1 text-xs font-medium text-ink-muted"
 				>
 					{detail.status.replaceAll('_', ' ')}
 				</span>
@@ -374,11 +377,11 @@
 		{:else if detail.status === 'completed'}
 			<section class="surface mt-8 p-7 text-center sm:p-10">
 				<div
-					class="mx-auto grid size-16 place-items-center rounded-2xl bg-positive/10 text-positive"
+					class="mx-auto grid size-16 place-items-center rounded-xl bg-positive/10 text-positive"
 				>
 					<CheckCircle2 size={30} />
 				</div>
-				<h2 class="mt-5 text-3xl font-extrabold tracking-tight text-ink">Document completed</h2>
+				<h2 class="mt-5 text-xl font-semibold tracking-tight text-ink">Document completed</h2>
 				<p class="mt-2 text-sm text-ink-muted">
 					Your immutable original is preserved. This download link expires after five minutes.
 				</p>
@@ -492,6 +495,14 @@
 								title={`Completed PDF preview for ${detail.subject}`}
 								class="h-[65vh] min-h-120 w-full bg-stone-200"
 							></iframe>
+							<p class="border-t border-line px-5 py-3 text-xs text-ink-muted sm:px-6">
+								Preview not showing? <button
+									type="button"
+									onclick={openPreview}
+									class="font-semibold text-brand-strong underline underline-offset-2"
+									>Open the PDF in a new tab</button
+								>. Some in-app browsers cannot display PDFs.
+							</p>
 							<div class="border-t border-line p-5 sm:p-6">
 								{#if signatureRequired}
 									<div class="mb-5 rounded-xl border border-line bg-canvas p-4">

@@ -46,7 +46,7 @@
 <section class="surface overflow-hidden">
 	<div class="border-b border-line bg-brand-soft/60 p-5 sm:p-7">
 		<p class="eyebrow">Document Copilot</p>
-		<h2 class="mt-2 text-2xl font-extrabold tracking-[-0.04em] text-ink">
+		<h2 class="mt-2 text-2xl font-semibold tracking-tight text-ink">
 			I found {document.copilot.total_fields} fields
 		</h2>
 		<p class="mt-2 text-sm leading-6 text-ink-muted">

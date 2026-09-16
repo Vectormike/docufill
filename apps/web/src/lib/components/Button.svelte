@@ -16,10 +16,10 @@
 	} = $props();
 
 	const variants = {
-		primary: 'border-brand bg-brand text-[#211d14] hover:bg-brand-strong',
-		secondary: 'border-line bg-surface-raised text-ink hover:border-brand',
-		ghost: 'border-transparent bg-transparent text-ink-muted hover:bg-brand-soft hover:text-ink',
-		danger: 'border-negative/30 bg-negative/10 text-negative hover:bg-negative/15'
+		primary: 'border-brand bg-brand text-[#211d14] hover:brightness-95',
+		secondary: 'border-line bg-surface-raised text-ink hover:bg-canvas',
+		ghost: 'border-transparent bg-transparent text-ink-muted hover:bg-canvas hover:text-ink',
+		danger: 'border-negative/25 bg-negative/8 text-negative hover:bg-negative/12'
 	};
 </script>
 
@@ -27,7 +27,7 @@
 	{...rest}
 	disabled={disabled || loading}
 	aria-busy={loading}
-	class="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border px-4 py-2.5 text-sm font-bold shadow-sm transition duration-[var(--motion-fast)] ease-out disabled:cursor-not-allowed disabled:opacity-55 {variants[
+	class="inline-flex min-h-11 items-center justify-center gap-2 rounded-control border px-4 py-2.5 text-sm font-semibold transition duration-[var(--motion-fast)] ease-out disabled:cursor-not-allowed disabled:opacity-55 {variants[
 		variant
 	]} {className}"
 >

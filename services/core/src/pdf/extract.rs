@@ -108,34 +108,11 @@ impl PdfEngine {
             }
 
             let page_text = page.text().map_err(AppError::internal)?;
-            let segments = page_text.segments();
-            for segment in segments.iter() {
-                let text = segment.text().trim().to_owned();
-                if text.is_empty() {
-                    continue;
-                }
-                let bounds = segment.bounds();
-                text_segments.push(TextSegment {
-                    text,
-                    page_number,
-                    x: bounds.left().value,
-                    y: bounds.bottom().value,
-                    width: bounds.width().value,
-                    height: bounds.height().value,
-                });
-            }
-
+            let (page_segments, inferred_fields) =
+                super::flat::extract_flat_page(&page_text, page_number, page.width().value)?;
+            text_segments.extend(page_segments);
             if fields.len() == page_fields_before {
-                let page_segments: Vec<_> = text_segments
-                    .iter()
-                    .filter(|segment| segment.page_number == page_number)
-                    .cloned()
-                    .collect();
-                fields.extend(infer_flat_fields(
-                    page_number,
-                    page.width().value,
-                    &page_segments,
-                ));
+                fields.extend(inferred_fields);
             }
         }
 
@@ -152,13 +129,15 @@ impl PdfEngine {
                 Path::new(path),
             )),
             None => Pdfium::bind_to_system_library(),
-        }
-        .map_err(|error| {
-            AppError::configuration(format!(
+        };
+        match bindings {
+            Ok(bindings) => Ok(Pdfium::new(bindings)),
+            // PDFium loads its bindings once per process, so later operations reuse them.
+            Err(PdfiumError::PdfiumLibraryBindingsAlreadyInitialized) => Ok(Pdfium::default()),
+            Err(error) => Err(AppError::configuration(format!(
                 "PDFium is unavailable; set PDFIUM_LIB_PATH ({error})"
-            ))
-        })?;
-        Ok(Pdfium::new(bindings))
+            ))),
+        }
     }
 
     pub(super) fn unicode_font(&self) -> AppResult<Option<Vec<u8>>> {
@@ -175,44 +154,6 @@ impl PdfEngine {
     }
 }
 
-fn infer_flat_fields(
-    page_number: u16,
-    page_width: f32,
-    segments: &[TextSegment],
-) -> Vec<ExtractedField> {
-    segments
-        .iter()
-        .filter(|segment| {
-            let text = segment.text.trim();
-            text.ends_with(':') || text.ends_with('?') || text.ends_with("________")
-        })
-        .enumerate()
-        .filter_map(|(index, label)| {
-            let right_x = label.x + label.width + 8.0;
-            let available = page_width - right_x - 36.0;
-            let (x, y, width) = if available >= 120.0 {
-                (right_x, label.y - 2.0, available)
-            } else {
-                (label.x, (label.y - label.height - 10.0).max(24.0), 240.0)
-            };
-            (width > 40.0).then(|| ExtractedField {
-                key: format!("flat-{page_number}-{index}"),
-                label: label
-                    .text
-                    .trim_end_matches([':', '?', '_'])
-                    .trim()
-                    .to_owned(),
-                kind: infer_kind(&label.text).to_owned(),
-                page_number,
-                x,
-                y,
-                width: width.min(page_width - x - 24.0),
-                height: (label.height + 6.0).max(18.0),
-            })
-        })
-        .collect()
-}
-
 fn field_kind(kind: PdfFormFieldType) -> &'static str {
     match kind {
         PdfFormFieldType::Text => "text",
@@ -224,7 +165,23 @@ fn field_kind(kind: PdfFormFieldType) -> &'static str {
     }
 }
 
-fn infer_kind(label: &str) -> &'static str {
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn binding_twice_reuses_the_loaded_library() {
+        let Ok(library_path) = std::env::var("PDFIUM_LIB_PATH") else {
+            return;
+        };
+        let engine = PdfEngine::new(Some(PathBuf::from(library_path)), None, 1024, 1);
+
+        assert!(engine.bind().is_ok());
+        assert!(engine.bind().is_ok());
+    }
+}
+
+pub(super) fn infer_kind(label: &str) -> &'static str {
     let normalized = label.to_ascii_lowercase();
     if normalized.contains("date") || normalized.contains("born") {
         "date"
@@ -238,30 +195,5 @@ fn infer_kind(label: &str) -> &'static str {
         "signature"
     } else {
         "text"
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn infers_a_field_after_a_label() {
-        let fields = infer_flat_fields(
-            1,
-            600.0,
-            &[TextSegment {
-                text: "Employer:".to_owned(),
-                page_number: 1,
-                x: 40.0,
-                y: 500.0,
-                width: 70.0,
-                height: 12.0,
-            }],
-        );
-
-        assert_eq!(fields.len(), 1);
-        assert_eq!(fields[0].label, "Employer");
-        assert!(fields[0].x > 110.0);
     }
 }

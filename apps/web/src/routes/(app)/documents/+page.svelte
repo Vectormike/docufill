@@ -11,6 +11,14 @@
 	let error = $state('');
 	let visibleCount = $state(12);
 
+	const overview = $derived.by(() => {
+		if (loading) return 'Loading your documents…';
+		if (documents.length === 0) return 'Upload a form to get started.';
+		const pending = documents.filter((document) => document.status === 'needs_input').length;
+		const total = `${documents.length} ${documents.length === 1 ? 'document' : 'documents'}`;
+		return pending === 0 ? total : `${total} · ${pending} need your input`;
+	});
+
 	onMount(() => {
 		void load();
 		const channel = getSupabase()
@@ -49,11 +57,11 @@
 		);
 	}
 
-	function statusClass(status: string) {
-		if (status === 'completed' || status === 'ready') return 'bg-positive/10 text-positive';
-		if (status === 'failed') return 'bg-negative/10 text-negative';
-		if (status === 'needs_input') return 'bg-brand-soft text-brand-strong';
-		return 'bg-canvas text-ink-muted';
+	function statusDot(status: string) {
+		if (status === 'completed' || status === 'ready') return 'bg-positive';
+		if (status === 'failed') return 'bg-negative';
+		if (status === 'needs_input') return 'bg-brand';
+		return 'bg-ink-muted/40';
 	}
 
 	function formatDate(value: string) {
@@ -67,54 +75,32 @@
 
 <svelte:head><title>Documents — Docufill</title></svelte:head>
 
-<main class="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
-	<div class="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+<main class="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
+	<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
 		<div>
-			<p class="eyebrow mb-2">Document workspace</p>
-			<h1 class="text-4xl font-extrabold tracking-[-0.055em] text-ink">Your documents</h1>
-			<p class="mt-2 text-sm text-ink-muted">
-				Upload a form and answer only what Docufill cannot confirm.
-			</p>
+			<h1 class="text-2xl font-semibold tracking-tight text-ink">Documents</h1>
+			<p class="mt-1 text-sm text-ink-muted">{overview}</p>
 		</div>
 		<a
 			href={resolve('/documents/new')}
-			class="inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-brand bg-brand px-5 py-3 text-sm font-extrabold text-[#211d14] shadow-sm transition hover:bg-brand-strong"
+			class="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-control border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-[#211d14] transition hover:brightness-95"
 		>
-			<FilePlus2 size={18} /> New document
+			<FilePlus2 size={17} /> New document
 		</a>
 	</div>
 
-	<div class="mt-8 grid gap-4 sm:grid-cols-3">
-		<div class="surface p-5">
-			<p class="text-xs font-bold tracking-wider text-ink-muted uppercase">All documents</p>
-			<p class="mt-2 text-3xl font-extrabold tracking-tight text-ink">{documents.length}</p>
-		</div>
-		<div class="surface p-5">
-			<p class="text-xs font-bold tracking-wider text-ink-muted uppercase">Need your input</p>
-			<p class="mt-2 text-3xl font-extrabold tracking-tight text-ink">
-				{documents.filter((document) => document.status === 'needs_input').length}
-			</p>
-		</div>
-		<div class="surface p-5">
-			<p class="text-xs font-bold tracking-wider text-ink-muted uppercase">Completed</p>
-			<p class="mt-2 text-3xl font-extrabold tracking-tight text-ink">
-				{documents.filter((document) => document.status === 'completed').length}
-			</p>
-		</div>
-	</div>
-
 	<section class="mt-8" aria-labelledby="history-title">
-		<div class="mb-4 flex items-center justify-between">
-			<h2 id="history-title" class="text-lg font-extrabold text-ink">Recent activity</h2>
+		<div class="mb-3 flex items-center justify-between">
+			<h2 id="history-title" class="text-sm font-semibold text-ink-muted">Recent activity</h2>
 			<Button variant="ghost" onclick={() => load()} {loading}>
-				<RefreshCw size={16} /> Refresh
+				<RefreshCw size={15} /> Refresh
 			</Button>
 		</div>
 
 		{#if loading}
-			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Loading documents">
+			<div class="surface divide-y divide-line overflow-hidden" aria-label="Loading documents">
 				{#each [1, 2, 3, 4, 5, 6] as item (item)}
-					<div class="surface h-44 p-5"><div class="skeleton h-full rounded-xl"></div></div>
+					<div class="px-4 py-3.5 sm:px-5"><div class="skeleton h-12 rounded-control"></div></div>
 				{/each}
 			</div>
 		{:else if error}
@@ -123,64 +109,60 @@
 				<Button class="mt-4" onclick={() => load()}>Try again</Button>
 			</div>
 		{:else if documents.length === 0}
-			<div class="surface px-6 py-14 text-center">
+			<div class="surface px-6 py-12 text-center">
 				<div
-					class="mx-auto grid size-16 place-items-center rounded-2xl bg-brand-soft text-brand-strong"
+					class="mx-auto grid size-11 place-items-center rounded-control border border-line text-ink-muted"
 				>
-					<Files size={28} />
+					<Files size={20} />
 				</div>
-				<h3 class="mt-5 text-2xl font-extrabold tracking-tight text-ink">
-					Your first form starts here
-				</h3>
-				<p class="mx-auto mt-2 max-w-md text-sm leading-6 text-ink-muted">
+				<h3 class="mt-4 text-base font-semibold text-ink">No documents yet</h3>
+				<p class="mx-auto mt-1.5 max-w-sm text-sm leading-6 text-ink-muted">
 					Upload a fillable or text-based PDF. Scanned image PDFs are not supported in this first
 					release.
 				</p>
 				<a
 					href={resolve('/documents/new')}
-					class="mt-6 inline-flex min-h-11 items-center gap-2 rounded-control bg-brand px-5 py-2.5 text-sm font-extrabold text-[#211d14]"
+					class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-[#211d14]"
 				>
 					Upload a PDF <ArrowRight size={16} />
 				</a>
-				<p class="mt-5 flex items-center justify-center gap-2 text-xs font-semibold text-positive">
-					<ShieldCheck size={15} /> Originals stay private and unchanged
+				<p class="mt-5 flex items-center justify-center gap-2 text-xs text-ink-muted">
+					<ShieldCheck size={14} /> Originals stay private and unchanged
 				</p>
 			</div>
 		{:else}
-			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+			<div class="surface divide-y divide-line overflow-hidden">
 				{#each documents.slice(0, visibleCount) as document (document.id)}
 					<a
 						href={resolve('/(app)/documents/[documentId]', { documentId: document.id })}
-						class="surface group flex min-h-44 flex-col p-5 transition duration-[var(--motion-base)] hover:-translate-y-0.5 hover:border-brand"
+						class="group flex min-w-0 items-center gap-4 px-4 py-3.5 transition duration-[var(--motion-fast)] hover:bg-canvas sm:px-5"
 					>
-						<div class="flex items-start justify-between gap-3">
-							<div
-								class="grid size-11 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand-strong"
-							>
-								<Files size={20} />
-							</div>
-							<span
-								class="rounded-full px-2.5 py-1 text-[11px] font-extrabold {statusClass(
-									document.status
-								)}"
-							>
-								{statusLabel(document.status)}
-							</span>
+						<div class="min-w-0 flex-1">
+							<h3 class="truncate text-sm font-semibold text-ink">{document.subject}</h3>
+							<p class="mt-0.5 truncate text-xs text-ink-muted" title={document.original_name}>
+								{document.original_name}
+							</p>
+							<p class="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-ink-muted">
+								<span class="inline-flex items-center gap-1.5">
+									<span class="size-1.5 rounded-full {statusDot(document.status)}"></span>
+									{statusLabel(document.status)}
+								</span>
+								<span aria-hidden="true">·</span>
+								<span>{formatDate(document.updated_at)}</span>
+							</p>
+							{#if document.status === 'processing'}
+								<div class="mt-2.5 h-1 overflow-hidden rounded-full bg-line">
+									<div
+										class="h-full rounded-full bg-brand transition-all"
+										style={`width: ${document.progress}%`}
+									></div>
+								</div>
+							{/if}
 						</div>
-						<h3 class="mt-4 line-clamp-2 leading-5 font-extrabold text-ink">{document.subject}</h3>
-						<p class="mt-1 truncate text-xs text-ink-muted">{document.original_name}</p>
-						<div class="mt-auto flex items-center justify-between pt-4 text-xs text-ink-muted">
-							<span>{formatDate(document.updated_at)}</span>
-							<ArrowRight size={16} class="transition group-hover:translate-x-1" />
-						</div>
-						{#if document.status === 'processing'}
-							<div class="mt-3 h-1.5 overflow-hidden rounded-full bg-line">
-								<div
-									class="h-full rounded-full bg-brand transition-all"
-									style={`width: ${document.progress}%`}
-								></div>
-							</div>
-						{/if}
+						<ArrowRight
+							size={16}
+							class="shrink-0 text-ink-muted/60 transition group-hover:text-ink"
+						/>
 					</a>
 				{/each}
 			</div>

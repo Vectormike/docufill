@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
+	import { api } from '$lib/api/client';
 	import BrandMark from '$lib/components/BrandMark.svelte';
 	import { getSupabase } from '$lib/supabase';
 
@@ -21,11 +22,21 @@
 			}
 			const { data } = await getSupabase().auth.getSession();
 			if (!data.session) throw new Error('The sign-in link is invalid or has expired.');
-			await goto(resolve('/documents'), { replaceState: true });
+			const destination = await nextDestination();
+			await goto(resolve(destination), { replaceState: true });
 		} catch (cause) {
 			error = cause instanceof Error ? cause.message : 'Sign-in could not be completed.';
 		}
 	});
+
+	async function nextDestination() {
+		try {
+			const vault = await api.profile();
+			return vault.profile.onboarding_completed ? '/documents' : '/onboarding';
+		} catch {
+			return '/onboarding';
+		}
+	}
 </script>
 
 <svelte:head><title>Signing in — Docufill</title></svelte:head>

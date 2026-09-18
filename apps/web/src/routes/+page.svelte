@@ -294,7 +294,6 @@
 				<Sparkles size={14} class="text-ink" />
 				Privacy-First Personal Document Agent
 			</div>
-
 			<!-- Centered Hero Title with Rebond Grotesque & LockSerif Accent -->
 			<h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-ink leading-[1.06] max-w-4xl text-balance">
 				Fill forms once. <br />
@@ -367,8 +366,6 @@
 					<FileCheck size={15} class="text-positive" /> Native PDFium Engine
 				</span>
 			</div>
-		</div>
-
 		<!-- Centered Floating Preview Card -->
 		<div id="hero-card" class="mt-16 mx-auto max-w-3xl surface overflow-hidden p-6 sm:p-8 border border-line shadow-card backdrop-blur-2xl text-left bg-white">
 			<div class="flex items-center justify-between border-b border-line pb-4 mb-6">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { factCatalog, factSections, findFact } from '$lib/profile-facts';
 	import Button from './Button.svelte';
 
 	let {
@@ -17,134 +18,16 @@
 		saving?: boolean;
 	} = $props();
 
-	const sections = [
-		['identity', 'Identity'],
-		['contact', 'Contact'],
-		['address', 'Address'],
-		['employment', 'Employment'],
-		['education', 'Education'],
-		['contacts', 'Next of kin & contacts'],
-		['financial', 'Financial'],
-		['identification', 'Identification'],
-		['custom', 'Reusable answer']
-	];
-
-	type DetailOption = {
-		key: string;
-		label: string;
-		example: string;
-		sensitive?: boolean;
-	};
-
-	const detailOptions: Record<string, DetailOption[]> = {
-		identity: [
-			{ key: 'full_name', label: 'Full name', example: 'e.g. Victor Jonah' },
-			{
-				key: 'date_of_birth',
-				label: 'Date of birth',
-				example: 'e.g. 14 May 1995',
-				sensitive: true
-			},
-			{ key: 'nationality', label: 'Nationality', example: 'e.g. Nigerian' },
-			{ key: 'marital_status', label: 'Marital status', example: 'e.g. Single' }
-		],
-		contact: [
-			{ key: 'email_address', label: 'Email address', example: 'e.g. victor@example.com' },
-			{ key: 'phone_number', label: 'Phone number', example: 'e.g. +234 800 000 0000' }
-		],
-		address: [
-			{
-				key: 'residential_address',
-				label: 'Residential address',
-				example: 'Enter your full address'
-			},
-			{ key: 'city', label: 'City', example: 'e.g. Abuja' },
-			{ key: 'state', label: 'State', example: 'e.g. FCT' },
-			{ key: 'country', label: 'Country', example: 'e.g. Nigeria' }
-		],
-		employment: [
-			{ key: 'employer_name', label: 'Current employer', example: 'e.g. Bujeti' },
-			{ key: 'occupation', label: 'Occupation or job title', example: 'e.g. Backend Engineer' },
-			{ key: 'employment_status', label: 'Employment status', example: 'e.g. Full-time employee' },
-			{
-				key: 'employer_address',
-				label: 'Employer address',
-				example: "Enter your employer's address"
-			},
-			{ key: 'employment_start_date', label: 'Employment start date', example: 'e.g. March 2025' }
-		],
-		education: [
-			{
-				key: 'institution_name',
-				label: 'School or institution',
-				example: 'e.g. University of Abuja'
-			},
-			{ key: 'qualification', label: 'Qualification', example: 'e.g. BSc Computer Science' },
-			{ key: 'graduation_year', label: 'Graduation year', example: 'e.g. 2022' }
-		],
-		contacts: [
-			{ key: 'next_of_kin_name', label: 'Next of kin name', example: 'Enter their full name' },
-			{ key: 'next_of_kin_phone', label: 'Next of kin phone', example: 'e.g. +234 800 000 0000' },
-			{
-				key: 'emergency_contact_name',
-				label: 'Emergency contact name',
-				example: 'Enter their full name'
-			},
-			{
-				key: 'emergency_contact_phone',
-				label: 'Emergency contact phone',
-				example: 'e.g. +234 800 000 0000'
-			}
-		],
-		financial: [
-			{ key: 'bank_name', label: 'Bank name', example: 'e.g. Guaranty Trust Bank' },
-			{
-				key: 'account_name',
-				label: 'Account name',
-				example: 'Enter the account name',
-				sensitive: true
-			},
-			{
-				key: 'account_number',
-				label: 'Account number',
-				example: 'Enter the account number',
-				sensitive: true
-			}
-		],
-		identification: [
-			{
-				key: 'nin',
-				label: 'National Identification Number (NIN)',
-				example: 'Enter your NIN',
-				sensitive: true
-			},
-			{
-				key: 'passport_number',
-				label: 'Passport number',
-				example: 'Enter your passport number',
-				sensitive: true
-			},
-			{
-				key: 'drivers_licence_number',
-				label: "Driver's licence number",
-				example: 'Enter your licence number',
-				sensitive: true
-			}
-		]
-	};
-
 	let namespace = $state('identity');
-	let factKey = $state(detailOptions.identity[0].key);
+	let factKey = $state(factCatalog.identity[0].key);
 	let customFactName = $state('');
 	let value = $state('');
 	let sensitivity = $state('personal');
-	const selectedDetail = $derived(
-		detailOptions[namespace]?.find((option) => option.key === factKey)
-	);
+	const selectedDetail = $derived(findFact(namespace, factKey));
 
 	function chooseSection(nextNamespace: string) {
 		namespace = nextNamespace;
-		const firstOption = detailOptions[nextNamespace]?.[0];
+		const firstOption = factCatalog[nextNamespace]?.[0];
 		factKey = firstOption?.key ?? '';
 		customFactName = '';
 		value = '';
@@ -153,8 +36,7 @@
 
 	function chooseDetail(nextFactKey: string) {
 		factKey = nextFactKey;
-		const option = detailOptions[namespace]?.find((item) => item.key === nextFactKey);
-		sensitivity = option?.sensitive ? 'sensitive' : 'personal';
+		sensitivity = findFact(namespace, nextFactKey)?.sensitive ? 'sensitive' : 'personal';
 	}
 
 	async function submit(event: SubmitEvent) {
@@ -185,8 +67,8 @@
 				onchange={(event) => chooseSection(event.currentTarget.value)}
 				class="mt-2 min-h-11 w-full rounded-control border-line bg-surface-raised text-sm text-ink"
 			>
-				{#each sections as section (section[0])}
-					<option value={section[0]}>{section[1]}</option>
+				{#each factSections as section (section.id)}
+					<option value={section.id}>{section.label}</option>
 				{/each}
 			</select>
 		</label>
@@ -206,7 +88,7 @@
 					onchange={(event) => chooseDetail(event.currentTarget.value)}
 					class="mt-2 min-h-11 w-full rounded-control border-line bg-surface-raised text-sm text-ink"
 				>
-					{#each detailOptions[namespace] ?? [] as option (option.key)}
+					{#each factCatalog[namespace] ?? [] as option (option.key)}
 						<option value={option.key}>{option.label}</option>
 					{/each}
 				</select>

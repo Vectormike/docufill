@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="en-NG">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Docufill — product prototype</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				--canvas: #f7f3ea;
+				--surface: #fffdf8;
+				--ink: #14110c;
+				--muted: #3a3429;
+				--line: #1f1a12;
+				--soft: #efe6d4;
+				--brand: #f0c14b;
+				--mark: #ffe27a;
+				--positive: #1f6b42;
+				--ease: cubic-bezier(0.16, 1, 0.3, 1);
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+				min-height: 100%;
+				background: #16140f;
+				color: var(--ink);
+				font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
+			}
+			body {
+				display: grid;
+				place-items: center;
+				min-height: 100vh;
+				padding: 24px;
+			}
+			.player {
+				position: relative;
+				width: min(100%, 1120px);
+				aspect-ratio: 16 / 9;
+				overflow: hidden;
+				background: var(--canvas);
+				box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+			}
+			body.record {
+				padding: 0;
+				background: var(--canvas);
+			}
+			body.record .player {
+				width: 100vw;
+				height: 100vh;
+				aspect-ratio: auto;
+				box-shadow: none;
+			}
+			body.record .controls {
+				display: none;
+			}
+			.scene {
+				position: absolute;
+				inset: 0;
+				display: grid;
+				place-items: center;
+				padding: 84px 36px 148px;
+				background: var(--canvas);
+				opacity: 0;
+				visibility: hidden;
+			}
+			.scene.is-on {
+				opacity: 1;
+				visibility: visible;
+			}
+			.steps {
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				display: flex;
+				z-index: 2;
+				background: var(--ink);
+			}
+			.steps span {
+				flex: 1;
+				padding: 14px 8px;
+				border-right: 1px solid #3a342c;
+				font-size: 15px;
+				font-weight: 800;
+				color: #b7ae9e;
+				text-align: center;
+			}
+			.steps span:last-child {
+				border-right: 0;
+			}
+			.steps span.on {
+				background: var(--brand);
+				color: var(--ink);
+			}
+			.steps span.done {
+				color: #fff8e4;
+			}
+			h1,
+			h2,
+			h3 {
+				margin: 0;
+				letter-spacing: -0.01em;
+			}
+			.ask {
+				font-family: Newsreader, Georgia, serif;
+				font-weight: 400;
+			}
+			.mark {
+				background: var(--mark);
+				padding: 0 0.18em;
+			}
+			.logo {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-weight: 700;
+			}
+			.card {
+				width: min(1080px, 100%);
+				border: 2px solid var(--ink);
+				background: var(--surface);
+			}
+			.title {
+				text-align: center;
+			}
+			.title .logo {
+				justify-content: center;
+				margin-bottom: 20px;
+			}
+			.scene.is-on .title .logo {
+				animation: rise 700ms var(--ease) both;
+			}
+			.title h1 {
+				font-size: clamp(46px, 5.6vw, 72px);
+				line-height: 1.06;
+				font-weight: 800;
+			}
+			.title .quiet {
+				color: var(--muted);
+			}
+			.title p {
+				max-width: 38rem;
+				margin: 18px auto 0;
+				font-size: 22px;
+				line-height: 1.45;
+				color: var(--muted);
+				font-weight: 600;
+			}
+			.chrome {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 16px 24px;
+				border-bottom: 2px solid var(--ink);
+				font-size: 16px;
+			}
+			.drop {
+				display: grid;
+				place-items: center;
+				min-height: 360px;
+				padding: 28px;
+				background: var(--soft);
+			}
+			.drop-box {
+				width: min(520px, 100%);
+				padding: 32px;
+				border: 2px dashed var(--ink);
+				background: var(--surface);
+				text-align: center;
+			}
+			.drop-box h2 {
+				font-size: 34px;
+				font-weight: 800;
+			}
+			.file-in {
+				display: none;
+				margin-top: 18px;
+				padding: 16px 18px;
+				border: 2px solid var(--ink);
+				background: var(--mark);
+				text-align: left;
+			}
+			.scene[data-beat='in'] .file-in,
+			.scene[data-beat='done'] .file-in {
+				display: block;
+			}
+			.scene[data-beat='done'] .file-in {
+				background: #e8f4ec;
+				border-color: #c6dfce;
+			}
+			.file-in b {
+				display: block;
+				font-size: 18px;
+			}
+			.file-in span {
+				color: var(--ink);
+				font-size: 15px;
+				font-weight: 600;
+			}
+			.grid2 {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+			}
+			.pdf,
+			.side {
+				min-height: 360px;
+				padding: 24px 26px;
+			}
+			.pdf {
+				background: var(--soft);
+				border-right: 2px solid var(--ink);
+			}
+			.kicker {
+				margin: 0 0 8px;
+				font-size: 15px;
+				font-weight: 800;
+				color: var(--ink);
+			}
+			.field {
+				display: grid;
+				grid-template-columns: 120px 1fr auto;
+				gap: 10px;
+				align-items: center;
+				margin-top: 16px;
+				font-size: 17px;
+				font-weight: 600;
+			}
+			.field b {
+				font-weight: 600;
+			}
+			.field em {
+				font-style: normal;
+				color: #b3ab9c;
+			}
+			.tag {
+				padding: 5px 8px;
+				border: 2px solid var(--ink);
+				font-size: 13px;
+				font-weight: 800;
+				white-space: nowrap;
+			}
+			.tag.known {
+				background: #b8e7c8;
+				color: #0f3d24;
+			}
+			.tag.ask {
+				background: var(--mark);
+				color: var(--ink);
+			}
+			.tag.wait {
+				background: #fff;
+				color: var(--ink);
+			}
+			.side h2 {
+				font-size: 34px;
+				line-height: 1.12;
+				font-weight: 800;
+			}
+			.side p {
+				margin: 12px 0 0;
+				font-size: 18px;
+				line-height: 1.45;
+				color: var(--muted);
+				font-weight: 600;
+			}
+			.stats {
+				display: grid;
+				grid-template-columns: 1fr 1fr 1fr;
+				gap: 10px;
+				margin-top: 20px;
+			}
+			.stats div {
+				padding: 14px;
+				border: 2px solid var(--ink);
+				font-weight: 700;
+				font-size: 15px;
+			}
+			.stats strong {
+				display: block;
+				font-size: 32px;
+			}
+			.q-head {
+				padding: 20px 26px;
+				border-bottom: 2px solid var(--ink);
+			}
+			.q-head h2 {
+				margin-top: 4px;
+				font-size: 32px;
+			}
+			.note {
+				margin: 12px 0 0;
+				font-size: 18px;
+				font-weight: 800;
+			}
+			.row {
+				display: grid;
+				grid-template-columns: 2.4rem 1fr auto;
+				gap: 14px;
+				align-items: center;
+				padding: 15px 26px;
+				border-bottom: 1px solid #ddd4c2;
+			}
+			.row.active {
+				background: var(--mark);
+			}
+			.num {
+				font-size: 15px;
+				font-weight: 800;
+				color: var(--ink);
+			}
+			.q {
+				margin: 0;
+				font-size: 18px;
+			}
+			.row.active .q {
+				font-size: 24px;
+				font-weight: 600;
+			}
+			.answer {
+				margin: 4px 0 0;
+				font-size: 16px;
+				color: var(--muted);
+				font-weight: 600;
+			}
+			.row.active .answer {
+				color: var(--ink);
+				border-bottom: 1.5px solid var(--ink);
+				min-height: 24px;
+			}
+			.split {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+			}
+			.pane {
+				min-height: 360px;
+				padding: 28px 30px;
+			}
+			.pane + .pane {
+				border-left: 2px solid var(--ink);
+				background: var(--soft);
+			}
+			.pane h2 {
+				font-size: 30px;
+				line-height: 1.15;
+				font-weight: 800;
+			}
+			.pane li {
+				margin-top: 12px;
+				font-size: 18px;
+				font-weight: 600;
+			}
+			.complete {
+				min-height: 360px;
+				padding: 36px;
+				text-align: center;
+			}
+			.complete h2 {
+				font-size: 34px;
+				font-weight: 800;
+			}
+			.seal {
+				width: 56px;
+				height: 56px;
+				display: grid;
+				place-items: center;
+				margin: 0 auto 12px;
+				background: #e8f4ec;
+				color: var(--positive);
+				font-size: 24px;
+				font-weight: 700;
+			}
+			.filled {
+				max-width: 440px;
+				margin: 20px auto 0;
+				padding: 18px 20px;
+				border: 2px solid var(--ink);
+				background: var(--soft);
+				text-align: left;
+				font-size: 17px;
+				font-weight: 600;
+			}
+			.filled div {
+				display: flex;
+				justify-content: space-between;
+				gap: 16px;
+				margin-top: 8px;
+			}
+			.sig {
+				width: 220px;
+				margin: 16px auto 0;
+			}
+			.sig path {
+				fill: none;
+				stroke: var(--ink);
+				stroke-width: 3;
+				stroke-linecap: round;
+				stroke-dasharray: 420;
+				stroke-dashoffset: 420;
+			}
+			.scene.is-on .sig path {
+				animation: write 1.2s var(--ease) 200ms forwards;
+			}
+			.end {
+				text-align: center;
+			}
+			.end h1 {
+				font-size: clamp(40px, 5vw, 62px);
+				line-height: 1.08;
+				font-weight: 800;
+			}
+			.end p {
+				max-width: 36rem;
+				margin: 16px auto 0;
+				font-size: 22px;
+				line-height: 1.45;
+				color: var(--muted);
+				font-weight: 600;
+			}
+			.caption {
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 20px;
+				padding: 18px 28px 22px;
+				background: var(--ink);
+				color: #fff8e4;
+			}
+			.caption b {
+				display: block;
+				font-size: 26px;
+				font-weight: 800;
+			}
+			.caption span {
+				display: block;
+				margin-top: 4px;
+				font-size: 17px;
+				color: #e8dcc0;
+				font-weight: 600;
+			}
+			.controls {
+				display: flex;
+				gap: 8px;
+			}
+			.controls button {
+				min-width: 74px;
+				height: 38px;
+				border: 2px solid #fff8e4;
+				background: var(--brand);
+				color: var(--ink);
+				font: 800 13px Manrope, sans-serif;
+				cursor: pointer;
+			}
+			.bar {
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				height: 6px;
+				background: #3a342c;
+			}
+			.bar i {
+				display: block;
+				width: 0;
+				height: 100%;
+				background: var(--brand);
+			}
+			@keyframes rise {
+				from {
+					opacity: 0;
+					transform: translateY(-24px);
+				}
+				to {
+					opacity: 1;
+					transform: none;
+				}
+			}
+			@keyframes write {
+				to {
+					stroke-dashoffset: 0;
+				}
+			}
+			.work {
+				display: grid;
+				grid-template-columns: 0.95fr 1.05fr;
+				align-items: stretch;
+			}
+			.work .copy,
+			.work .sheet {
+				min-height: 390px;
+				padding: 22px 24px;
+			}
+			.work .copy {
+				border-right: 2px solid var(--ink);
+			}
+			.work .copy h2 {
+				font-size: 30px;
+				line-height: 1.12;
+				font-weight: 800;
+			}
+			.work .copy p,
+			.work .copy li {
+				margin: 10px 0 0;
+				font-size: 16px;
+				line-height: 1.45;
+				font-weight: 600;
+				color: var(--muted);
+			}
+			.sheet {
+				background: #d8d0c2;
+				display: grid;
+				place-items: center;
+			}
+			.paper {
+				width: min(390px, 100%);
+				padding: 16px 18px 14px;
+				background: #fff;
+				border: 2px solid var(--ink);
+				box-shadow: 7px 8px 0 var(--ink);
+			}
+			.paper-meta {
+				margin: 0 0 8px;
+				font-size: 11px;
+				font-weight: 800;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: #6d6558;
+			}
+			.paper h3 {
+				font-family: Newsreader, Georgia, serif;
+				font-size: 20px;
+				line-height: 1.15;
+			}
+			.paper-sub {
+				margin: 4px 0 10px;
+				font-size: 12px;
+				font-weight: 600;
+				color: #6d6558;
+			}
+			.sec {
+				margin: 12px 0 4px;
+				padding: 3px 6px;
+				background: var(--ink);
+				color: #fff8e4;
+				font-size: 11px;
+				font-weight: 800;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.line {
+				display: grid;
+				grid-template-columns: 132px 1fr;
+				gap: 8px;
+				align-items: end;
+				padding: 5px 4px;
+				border-bottom: 1px solid #e4dccb;
+				font-size: 12px;
+				font-weight: 700;
+			}
+			.line span {
+				color: #6d6558;
+			}
+			.val {
+				min-height: 16px;
+				color: transparent;
+				border-bottom: 1px solid #cfc6b6;
+			}
+			.paper.known .name,
+			.paper.known .email,
+			.paper.known .phone,
+			.paper.known .rent,
+			.paper.work .employer,
+			.paper.all .val {
+				color: var(--ink);
+				border-bottom-color: transparent;
+			}
+			.paper.scan .line {
+				background: #fff4c4;
+				box-shadow: inset 0 0 0 2px var(--brand);
+			}
+			.paper.focus-guar .line:not([data-box^='g']),
+			.paper.focus-guar .sec:not(.guar) {
+				opacity: 0.28;
+			}
+			.paper.focus-guar .sec.guar,
+			.paper.focus-guar [data-box^='g'] {
+				background: #fff4c4;
+			}
+			.sign-row {
+				display: flex;
+				justify-content: space-between;
+				align-items: end;
+				margin-top: 12px;
+				font-size: 12px;
+				font-weight: 700;
+				color: #6d6558;
+			}
+			.paper .sig {
+				width: 120px;
+				margin: 0;
+			}
+			.paper:not(.signed) .sig {
+				visibility: hidden;
+			}
+			@media (max-width: 800px) {
+				body {
+					padding: 0;
+				}
+				.player {
+					width: 100%;
+					height: 100vh;
+					aspect-ratio: auto;
+				}
+				.scene {
+					padding: 86px 16px 120px;
+				}
+				.steps {
+					left: 12px;
+					right: 12px;
+					flex-wrap: wrap;
+				}
+				.grid2,
+				.split,
+				.work {
+					grid-template-columns: 1fr;
+				}
+				.pdf,
+				.pane + .pane,
+				.work .copy {
+					border: 0;
+					border-top: 1px solid var(--line);
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="player">
+			<div class="steps" id="steps">
+				<span data-step="title">Start</span>
+				<span data-step="upload">1. Upload</span>
+				<span data-step="extract">2. Find fields</span>
+				<span data-step="questions">3. Answer gaps</span>
+				<span data-step="invite">4. Invite</span>
+				<span data-step="sign">5. Sign</span>
+			</div>
+
+			<section class="scene is-on" data-scene="title">
+				<div class="title">
+					<div class="logo">
+						<svg width="52" height="52" viewBox="0 0 48 48" aria-hidden="true">
+							<rect width="48" height="48" rx="14" fill="var(--brand)" />
+							<path d="M14 9h14l7 7v23H14V9Z" fill="var(--ink)" />
+							<path d="M28 9v8h7" fill="var(--brand)" />
+							<path d="M19 23h11M19 28h9M19 33h6" stroke="var(--brand)" stroke-linecap="round" stroke-width="2.5" />
+						</svg>
+					</div>
+					<h1>Fill a form once.<br /><span class="quiet">Reuse it the next time.</span></h1>
+					<p>Docufill turns a PDF into a short checklist, fills what it already knows, and asks only what is missing.</p>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="upload">
+				<div class="card work">
+					<div class="copy">
+						<div class="chrome" style="border: 0; padding: 0 0 16px">
+							<div class="logo">
+								<svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
+									<rect width="48" height="48" rx="14" fill="var(--brand)" />
+									<path d="M14 9h14l7 7v23H14V9Z" fill="var(--ink)" />
+									<path d="M28 9v8h7" fill="var(--brand)" />
+									<path d="M19 23h11M19 28h9M19 33h6" stroke="var(--brand)" stroke-linecap="round" stroke-width="2.5" />
+								</svg>
+								Docufill
+							</div>
+						</div>
+						<p class="kicker">Step 1</p>
+						<h2>Upload the actual PDF</h2>
+						<p>Chinedu adds <b>Tenancy Application.pdf</b>. You see the real page, not a summary.</p>
+						<div class="file-in">
+							<b>Tenancy Application.pdf</b>
+							<span id="upload-status">Opening page 1…</span>
+						</div>
+					</div>
+					<div class="sheet">
+						<article class="paper" id="doc-upload">
+							<p class="paper-meta">Tenancy Application.pdf · Page 1 of 2</p>
+							<h3>Residential Tenancy Application</h3>
+							<p class="paper-sub">14 Admiralty Way, Lekki Phase 1, Lagos</p>
+							<p class="sec">Applicant</p>
+							<div class="line" data-box="name"><span>Full legal name</span><b class="val name">Chinedu Okonkwo</b></div>
+							<div class="line" data-box="email"><span>Email</span><b class="val email">chinedu@bujeti.com</b></div>
+							<div class="line" data-box="phone"><span>Phone</span><b class="val phone">+234 803 555 0142</b></div>
+							<div class="line" data-box="employer"><span>Current employer</span><b class="val employer"></b></div>
+							<div class="line" data-box="rent"><span>Monthly rent</span><b class="val rent">₦2,400,000</b></div>
+							<p class="sec guar">Guarantor</p>
+							<div class="line" data-box="gname"><span>Full name</span><b class="val gname"></b></div>
+							<div class="line" data-box="grel"><span>Relationship</span><b class="val grel"></b></div>
+							<div class="line" data-box="gphone"><span>Phone</span><b class="val gphone"></b></div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="extract">
+				<div class="card work">
+					<div class="copy">
+						<p class="kicker">Step 2</p>
+						<h2>Docufill reads this page.</h2>
+						<p>Yellow boxes are the fields it found on the PDF. Green means the answer is already in Chinedu’s profile. Blank lines still need someone.</p>
+						<div class="stats">
+							<div><strong>11</strong>already known</div>
+							<div><strong>4</strong>ask Chinedu</div>
+							<div><strong>3</strong>ask Adaeze</div>
+						</div>
+					</div>
+					<div class="sheet">
+						<article class="paper scan" id="doc-extract">
+							<p class="paper-meta">Original PDF · fields found</p>
+							<h3>Residential Tenancy Application</h3>
+							<p class="paper-sub">14 Admiralty Way, Lekki Phase 1, Lagos</p>
+							<p class="sec">Applicant</p>
+							<div class="line" data-box="name"><span>Full legal name</span><b class="val name">Chinedu Okonkwo</b></div>
+							<div class="line" data-box="email"><span>Email</span><b class="val email">chinedu@bujeti.com</b></div>
+							<div class="line" data-box="phone"><span>Phone</span><b class="val phone">+234 803 555 0142</b></div>
+							<div class="line" data-box="employer"><span>Current employer</span><b class="val employer"></b></div>
+							<div class="line" data-box="rent"><span>Monthly rent</span><b class="val rent">₦2,400,000</b></div>
+							<p class="sec guar">Guarantor</p>
+							<div class="line" data-box="gname"><span>Full name</span><b class="val gname"></b></div>
+							<div class="line" data-box="grel"><span>Relationship</span><b class="val grel"></b></div>
+							<div class="line" data-box="gphone"><span>Phone</span><b class="val gphone"></b></div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="questions">
+				<div class="card work">
+					<div class="copy" style="padding: 0">
+						<div class="q-head">
+							<p class="kicker">Chinedu’s checklist</p>
+							<h2 class="ask">Answer gaps</h2>
+							<p class="note" id="q-note">This name is already in his profile, so it writes onto the PDF.</p>
+						</div>
+						<div class="row" data-q="name">
+							<span class="num">01</span>
+							<div>
+								<p class="q ask">Full legal name</p>
+								<p class="answer">Chinedu Okonkwo</p>
+							</div>
+							<span class="tag known">From profile</span>
+						</div>
+						<div class="row" data-q="email">
+							<span class="num">02</span>
+							<div>
+								<p class="q ask">Email address</p>
+								<p class="answer">chinedu@bujeti.com</p>
+							</div>
+							<span class="tag known">From profile</span>
+						</div>
+						<div class="row" data-q="employer">
+							<span class="num">03</span>
+							<div>
+								<p class="q ask">Current employer</p>
+								<p class="answer" id="employer-answer">Type your answer</p>
+							</div>
+							<span class="tag ask" id="employer-source">Needs an answer</span>
+						</div>
+						<div class="row" data-q="guarantor">
+							<span class="num">04</span>
+							<div>
+								<p class="q ask">Guarantor full name</p>
+								<p class="answer">Waiting for Adaeze</p>
+							</div>
+							<span class="tag wait">Sent to Adaeze</span>
+						</div>
+					</div>
+					<div class="sheet">
+						<article class="paper known" id="doc-questions">
+							<p class="paper-meta">Live PDF preview</p>
+							<h3>Residential Tenancy Application</h3>
+							<p class="paper-sub">14 Admiralty Way, Lekki Phase 1, Lagos</p>
+							<p class="sec">Applicant</p>
+							<div class="line" data-box="name"><span>Full legal name</span><b class="val name">Chinedu Okonkwo</b></div>
+							<div class="line" data-box="email"><span>Email</span><b class="val email">chinedu@bujeti.com</b></div>
+							<div class="line" data-box="phone"><span>Phone</span><b class="val phone">+234 803 555 0142</b></div>
+							<div class="line" data-box="employer"><span>Current employer</span><b class="val employer" id="doc-employer"></b></div>
+							<div class="line" data-box="rent"><span>Monthly rent</span><b class="val rent">₦2,400,000</b></div>
+							<p class="sec guar">Guarantor</p>
+							<div class="line" data-box="gname"><span>Full name</span><b class="val gname"></b></div>
+							<div class="line" data-box="grel"><span>Relationship</span><b class="val grel"></b></div>
+							<div class="line" data-box="gphone"><span>Phone</span><b class="val gphone"></b></div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="invite">
+				<div class="card work">
+					<div class="copy">
+						<p class="kicker">Adaeze’s private link</p>
+						<h2>She only sees her section of this document.</h2>
+						<p>The rest of the page is hidden. She answers name, relationship, and phone. Those three lines write onto the same PDF.</p>
+						<p><span class="mark">Adaeze Okonkwo</span> · Sister · +234 809 441 2201</p>
+					</div>
+					<div class="sheet">
+						<article class="paper all focus-guar" id="doc-invite">
+							<p class="paper-meta">Guarantor section only</p>
+							<h3>Residential Tenancy Application</h3>
+							<p class="paper-sub">14 Admiralty Way, Lekki Phase 1, Lagos</p>
+							<p class="sec">Applicant</p>
+							<div class="line" data-box="name"><span>Full legal name</span><b class="val name">Chinedu Okonkwo</b></div>
+							<div class="line" data-box="email"><span>Email</span><b class="val email">chinedu@bujeti.com</b></div>
+							<div class="line" data-box="phone"><span>Phone</span><b class="val phone">+234 803 555 0142</b></div>
+							<div class="line" data-box="employer"><span>Current employer</span><b class="val employer">Bujeti Limited</b></div>
+							<div class="line" data-box="rent"><span>Monthly rent</span><b class="val rent">₦2,400,000</b></div>
+							<p class="sec guar">Guarantor</p>
+							<div class="line" data-box="gname"><span>Full name</span><b class="val gname">Adaeze Okonkwo</b></div>
+							<div class="line" data-box="grel"><span>Relationship</span><b class="val grel">Sister</b></div>
+							<div class="line" data-box="gphone"><span>Phone</span><b class="val gphone">+234 809 441 2201</b></div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="sign">
+				<div class="card work">
+					<div class="copy">
+						<div class="seal">✓</div>
+						<p class="kicker">Last step</p>
+						<h2>Review the completed PDF, then sign.</h2>
+						<p>Every answer is now on the page. Chinedu signs this preview. The original upload stays unchanged.</p>
+					</div>
+					<div class="sheet">
+						<article class="paper all signed" id="doc-sign">
+							<p class="paper-meta">Completed PDF · ready to download</p>
+							<h3>Residential Tenancy Application</h3>
+							<p class="paper-sub">14 Admiralty Way, Lekki Phase 1, Lagos</p>
+							<p class="sec">Applicant</p>
+							<div class="line" data-box="name"><span>Full legal name</span><b class="val name">Chinedu Okonkwo</b></div>
+							<div class="line" data-box="email"><span>Email</span><b class="val email">chinedu@bujeti.com</b></div>
+							<div class="line" data-box="phone"><span>Phone</span><b class="val phone">+234 803 555 0142</b></div>
+							<div class="line" data-box="employer"><span>Current employer</span><b class="val employer">Bujeti Limited</b></div>
+							<div class="line" data-box="rent"><span>Monthly rent</span><b class="val rent">₦2,400,000</b></div>
+							<p class="sec guar">Guarantor</p>
+							<div class="line" data-box="gname"><span>Full name</span><b class="val gname">Adaeze Okonkwo</b></div>
+							<div class="line" data-box="grel"><span>Relationship</span><b class="val grel">Sister</b></div>
+							<div class="line" data-box="gphone"><span>Phone</span><b class="val gphone">+234 809 441 2201</b></div>
+							<div class="sign-row">
+								<span>Applicant signature</span>
+								<svg class="sig" viewBox="0 0 220 56" aria-hidden="true">
+									<path d="M8 38c18-20 28 16 40 2 10-12 18-24 30-14 16 12 18 26 38 14 14-10 26-6 42 4 12 6 26 10 44-8" />
+								</svg>
+							</div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="end">
+				<div class="end">
+					<h1>Next form? Most of it is already done.</h1>
+					<p>Docufill remembers only what Chinedu confirms. Adaeze’s answers stay on this document. The completed PDF downloads clean.</p>
+				</div>
+			</section>
+
+			<audio id="music" src="score.mp3" preload="auto"></audio>
+			<div class="caption">
+				<p><b id="cap-title">How Docufill works</b><span id="cap-body">A short walkthrough of filling a tenancy form.</span></p>
+				<div class="controls">
+					<button type="button" id="toggle">Pause</button>
+					<button type="button" id="mute">Mute</button>
+					<button type="button" id="restart">Replay</button>
+				</div>
+			</div>
+			<div class="bar"><i id="progress"></i></div>
+		</div>
+		<script>
+			const DURATION = 48000;
+			const scenes = [
+				{ id: 'title', at: 0, title: 'How Docufill works', body: 'A short walkthrough of filling a tenancy form.' },
+				{ id: 'upload', at: 5000, title: '1. Open the document', body: 'Tenancy Application.pdf appears as a real page: applicant fields, then guarantor.' },
+				{ id: 'extract', at: 12000, title: '2. Find fields on the page', body: 'Yellow boxes are the fields Docufill found. Known answers stay. Blank lines still need people.' },
+				{ id: 'questions', at: 20000, title: '3. Write onto the PDF', body: 'Profile answers land on the document. Employer is typed once and appears on the page.' },
+				{ id: 'invite', at: 32000, title: '4. Adaeze fills her block', body: 'She only sees the highlighted guarantor section of this same PDF.' },
+				{ id: 'sign', at: 40000, title: '5. Sign the completed page', body: 'The filled document is what he signs. The original upload is never changed.' },
+				{ id: 'end', at: 44500, title: 'The next form is easier', body: 'Confirmed facts come back. Guest answers stay on that document.' }
+			];
+			const notes = {
+				name: 'This name is already in his profile, so he does not type it again.',
+				email: 'Email is reused the same way. He just checks it.',
+				employer: 'Employer is new, so this is the one question he types.'
+			};
+			const employer = 'Bujeti Limited';
+			let started = 0;
+			let elapsed = 0;
+			let playing = true;
+			let frame = 0;
+			let lastTyped = -1;
+			const nodes = Object.fromEntries(scenes.map((s) => [s.id, document.querySelector(`[data-scene="${s.id}"]`)]));
+			const upload = nodes.upload;
+			const uploadStatus = document.getElementById('upload-status');
+			const capTitle = document.getElementById('cap-title');
+			const capBody = document.getElementById('cap-body');
+			const progress = document.getElementById('progress');
+			const music = document.getElementById('music');
+			const mute = document.getElementById('mute');
+			const toggle = document.getElementById('toggle');
+			const qNote = document.getElementById('q-note');
+			const employerAnswer = document.getElementById('employer-answer');
+			const employerSource = document.getElementById('employer-source');
+			const docEmployer = document.getElementById('doc-employer');
+			const docExtract = document.getElementById('doc-extract');
+			const docQuestions = document.getElementById('doc-questions');
+			const stepNodes = [...document.querySelectorAll('#steps [data-step]')];
+			const rows = {
+				name: document.querySelector('[data-q="name"]'),
+				email: document.querySelector('[data-q="email"]'),
+				employer: document.querySelector('[data-q="employer"]'),
+				guarantor: document.querySelector('[data-q="guarantor"]')
+			};
+			const order = ['title', 'upload', 'extract', 'questions', 'invite', 'sign'];
+
+			function apply(time) {
+				const current = [...scenes].reverse().find((s) => time >= s.at) ?? scenes[0];
+				for (const [id, node] of Object.entries(nodes)) node.classList.toggle('is-on', id === current.id);
+				capTitle.textContent = current.title;
+				capBody.textContent = current.body;
+				progress.style.width = `${Math.min(100, (time / DURATION) * 100)}%`;
+				const active = order.indexOf(current.id);
+				stepNodes.forEach((node, index) => {
+					node.classList.toggle('on', node.dataset.step === current.id);
+					node.classList.toggle('done', active > index);
+				});
+
+				if (current.id === 'upload') {
+					const local = time - 5000;
+					upload.dataset.beat = local < 1400 ? 'wait' : local < 3600 ? 'in' : 'done';
+					uploadStatus.textContent =
+						local < 3600 ? 'Opening the original PDF…' : 'This is page 1. The original stays private.';
+				}
+				if (current.id === 'extract' && docExtract) {
+					const local = time - 12000;
+					docExtract.classList.toggle('scan', local < 2600);
+					docExtract.classList.toggle('known', local >= 1800);
+				}
+				if (current.id === 'questions') {
+					const local = time - 20000;
+					const key = local < 3500 ? 'name' : local < 6500 ? 'email' : 'employer';
+					qNote.textContent = notes[key];
+					if (docQuestions) {
+						docQuestions.querySelectorAll('.line').forEach((line) => {
+							line.style.background = line.dataset.box === key ? '#fff4c4' : '';
+						});
+					}
+					for (const [name, row] of Object.entries(rows)) {
+						row.classList.toggle('active', name === key);
+						const label = row.querySelector('.q');
+						const text = label.dataset.label || label.textContent;
+						label.dataset.label = text;
+						label.innerHTML = name === key ? `<span class="mark">${text}</span>` : text;
+					}
+					const typed = Math.min(employer.length, Math.max(0, Math.floor((local - 6800) / 90)));
+					if (typed !== lastTyped) {
+						lastTyped = typed;
+						employerAnswer.textContent = typed ? employer.slice(0, typed) : 'Type your answer';
+						employerSource.textContent = typed === employer.length ? 'Written on PDF' : 'Needs an answer';
+						employerSource.className = `tag ${typed === employer.length ? 'known' : 'ask'}`;
+						if (docEmployer) docEmployer.textContent = typed ? employer.slice(0, typed) : '';
+						if (docQuestions) docQuestions.classList.toggle('work', typed > 0);
+					}
+				} else lastTyped = -1;
+			}
+
+			function tick(now) {
+				if (playing) elapsed = now - started;
+				if (elapsed >= DURATION) {
+					elapsed = DURATION;
+					playing = false;
+					toggle.textContent = 'Replay';
+					syncMusic(elapsed, false);
+					apply(elapsed);
+					return;
+				}
+				apply(elapsed);
+				frame = requestAnimationFrame(tick);
+			}
+
+			function syncMusic(ms, shouldPlay) {
+				if (!music) return;
+				const next = Math.min((ms || 0) / 1000, music.duration || 50);
+				if (Math.abs((music.currentTime || 0) - next) > 0.35) music.currentTime = next;
+				if (shouldPlay) void music.play().catch(() => {});
+				else music.pause();
+			}
+
+			function playFrom(ms) {
+				elapsed = ms;
+				started = performance.now() - ms;
+				playing = true;
+				toggle.textContent = 'Pause';
+				syncMusic(ms, true);
+				cancelAnimationFrame(frame);
+				frame = requestAnimationFrame(tick);
+			}
+
+			toggle.addEventListener('click', () => {
+				if (elapsed >= DURATION) return playFrom(0);
+				if (playing) {
+					playing = false;
+					toggle.textContent = 'Play';
+					syncMusic(elapsed, false);
+					cancelAnimationFrame(frame);
+					return;
+				}
+				playFrom(elapsed);
+			});
+			mute.addEventListener('click', () => {
+				music.muted = !music.muted;
+				mute.textContent = music.muted ? 'Sound' : 'Mute';
+			});
+			document.getElementById('restart').addEventListener('click', () => playFrom(0));
+			const params = new URLSearchParams(location.search);
+			if (params.has('record')) document.body.classList.add('record');
+			playFrom(Number(params.get('t') || 0) * 1000);
+		</script>
+	</body>
+</html>

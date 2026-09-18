@@ -19,7 +19,7 @@
 	import CopilotSummary from '$lib/components/CopilotSummary.svelte';
 	import ParticipantManager from '$lib/components/ParticipantManager.svelte';
 	import PdfAdjuster from '$lib/components/PdfAdjuster.svelte';
-	import QuestionCard from '$lib/components/QuestionCard.svelte';
+	import QuestionLine from '$lib/components/QuestionLine.svelte';
 
 	type Mode = 'summary' | 'questions' | 'review' | 'preview' | 'adjust';
 
@@ -29,7 +29,7 @@
 	let loading = $state(true);
 	let error = $state('');
 	let mode = $state<Mode>('summary');
-	let current = $state(0);
+	let activeFieldId = $state('');
 	let previewUrl = $state('');
 	let previewing = $state(false);
 	let completing = $state(false);
@@ -39,16 +39,17 @@
 	let memorySaving = $state(false);
 	let approvedMemoryFieldIds = $state<string[]>([]);
 
-	const questions = $derived.by(() => {
-		const fields = (detail?.fields ?? []).filter(
-			(field) => !field.participant_id && field.kind !== 'signature'
-		);
-		return fields.sort((left, right) => {
-			const leftNeedsInput = !left.confirmed_at ? 0 : 1;
-			const rightNeedsInput = !right.confirmed_at ? 0 : 1;
-			return leftNeedsInput - rightNeedsInput || left.sort_order - right.sort_order;
-		});
-	});
+	/**
+	 * Document order, not answered-first: the list is meant to read as the form
+	 * itself. Unanswered asks are highlighted instead of hoisted.
+	 */
+	const questions = $derived(
+		(detail?.fields ?? [])
+			.filter((field) => field.kind !== 'signature')
+			.sort((left, right) => left.sort_order - right.sort_order)
+	);
+	const answerable = $derived(questions.filter((field) => !field.participant_id));
+	const remaining = $derived(answerable.filter((field) => !field.confirmed_at).length);
 	const signatureRequired = $derived(
 		Boolean(detail?.fields.some((field) => !field.participant_id && field.kind === 'signature'))
 	);
@@ -108,43 +109,47 @@
 	}
 
 	function startQuestions() {
-		current = Math.max(
-			0,
-			questions.findIndex((field) => !field.confirmed_at)
-		);
+		activeFieldId = nextGapId() ?? answerable[0]?.id ?? '';
 		mode = 'questions';
 	}
 
 	function editField(fieldId: string) {
-		const index = questions.findIndex((field) => field.id === fieldId);
-		if (index >= 0) {
-			current = index;
-			mode = 'questions';
-		}
+		activeFieldId = fieldId;
+		mode = 'questions';
 	}
 
-	async function saveAnswer(value: string) {
-		const field = questions[current];
-		if (!field || !detail) return;
-		const updated = await api.updateField(documentId, field.id, {
+	function nextGapId(after = activeFieldId) {
+		const start = answerable.findIndex((field) => field.id === after);
+		const ordered = [...answerable.slice(start + 1), ...answerable.slice(0, start + 1)];
+		return ordered.find((field) => !field.confirmed_at)?.id;
+	}
+
+	function advance() {
+		const next = nextGapId();
+		if (next) activeFieldId = next;
+		else mode = 'review';
+	}
+
+	async function saveAnswer(fieldId: string, value: string) {
+		if (!detail) return;
+		const updated = await api.updateField(documentId, fieldId, {
 			value,
 			source: 'user',
 			confirmed: true
 		});
 		detail = {
 			...detail,
-			fields: detail.fields.map((item) => (item.id === field.id ? updated : item))
+			fields: detail.fields.map((item) => (item.id === fieldId ? updated : item))
 		};
 	}
 
-	async function rejectDraft() {
-		const field = questions[current];
-		if (!field || !detail) return;
-		await api.clearField(documentId, field.id);
+	async function rejectDraft(fieldId: string) {
+		if (!detail) return;
+		await api.clearField(documentId, fieldId);
 		detail = {
 			...detail,
 			fields: detail.fields.map((item) =>
-				item.id === field.id
+				item.id === fieldId
 					? { ...item, value: null, value_preview: null, source: 'missing', confirmed_at: null }
 					: item
 			)
@@ -305,7 +310,7 @@
 	{:else if detail}
 		<header class="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 			<div>
-				<h1 class="text-xl font-semibold tracking-tight text-balance text-ink sm:text-2xl">
+				<h1 class="ask text-xl leading-8 text-balance text-ink sm:text-2xl">
 					{detail.subject}
 				</h1>
 				<p class="mt-1 text-xs text-ink-muted">{detail.original_name}</p>
@@ -348,7 +353,7 @@
 				</p>
 				<div class="mx-auto mt-6 h-2 max-w-md overflow-hidden rounded-full bg-line">
 					<div
-						class="h-full rounded-full bg-brand transition-all"
+						class="h-full rounded-full bg-ink transition-all"
 						style={`width:${detail.progress}%`}
 					></div>
 				</div>
@@ -368,7 +373,7 @@
 					{/if}
 					<a
 						href={resolve('/documents/new')}
-						class="inline-flex min-h-11 items-center rounded-control bg-brand px-5 text-sm font-extrabold text-[#211d14]"
+						class="inline-flex min-h-11 items-center rounded-control bg-ink px-5 text-sm font-semibold text-canvas"
 					>
 						Upload another PDF
 					</a>
@@ -381,7 +386,7 @@
 				>
 					<CheckCircle2 size={30} />
 				</div>
-				<h2 class="mt-5 text-xl font-semibold tracking-tight text-ink">Document completed</h2>
+				<h2 class="ask mt-5 text-xl leading-8 text-ink">Document completed</h2>
 				<p class="mt-2 text-sm text-ink-muted">
 					Your immutable original is preserved. This download link expires after five minutes.
 				</p>
@@ -439,16 +444,49 @@
 						onstart={startQuestions}
 						onreview={() => (mode = 'review')}
 					/>
-				{:else if mode === 'questions' && questions[current]}
-					<QuestionCard
-						field={questions[current]}
-						index={current}
-						total={questions.length}
-						onsave={saveAnswer}
-						onreject={rejectDraft}
-						onback={() => (current = Math.max(0, current - 1))}
-						onnext={() => (current < questions.length - 1 ? (current += 1) : (mode = 'review'))}
-					/>
+				{:else if mode === 'questions'}
+					<section class="surface overflow-hidden">
+						<div class="border-b border-line px-4 py-5 sm:px-7 sm:py-6">
+							<p class="gutter">{questions.length} questions · {remaining} for you</p>
+							<h2 class="ask mt-2 text-xl leading-7 text-balance text-ink sm:text-2xl sm:leading-8">
+								{detail.subject}
+							</h2>
+							<div class="mt-4 flex items-center gap-1" aria-hidden="true">
+								{#each answerable as field (field.id)}
+									<span class="h-[3px] w-3 {field.confirmed_at ? 'bg-ink' : 'bg-line'}"></span>
+								{/each}
+							</div>
+						</div>
+
+						{#each questions as field, index (field.id)}
+							<QuestionLine
+								{field}
+								number={index + 1}
+								active={field.id === activeFieldId}
+								onactivate={() => (activeFieldId = field.id)}
+								onsave={(value) => saveAnswer(field.id, value)}
+								onreject={() => rejectDraft(field.id)}
+								onnext={advance}
+							/>
+						{/each}
+
+						<div
+							class="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-7 sm:py-5"
+						>
+							<p class="gutter">autosaved · encrypted</p>
+							<div class="flex items-center gap-4">
+								{#if remaining > 0}
+									<button
+										type="button"
+										onclick={() => (activeFieldId = nextGapId() ?? activeFieldId)}
+										class="text-xs font-semibold text-ink-muted hover:text-ink"
+										>Jump to next gap</button
+									>
+								{/if}
+								<Button onclick={() => (mode = 'review')}>Review answers</Button>
+							</div>
+						</div>
+					</section>
 				{:else if mode === 'review'}
 					<AnswerReview
 						fields={detail.fields}

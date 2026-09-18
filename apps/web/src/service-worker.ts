@@ -7,7 +7,16 @@ const CACHE = `docufill-shell-${version}`;
 const PUBLIC_ASSETS = [...build, ...files].filter(
 	(path) => !path.endsWith('.pdf') && !path.includes('signature')
 );
-const SENSITIVE_PATHS = ['/profile', '/documents', '/settings', '/share', '/auth', '/api', '/v1'];
+const SENSITIVE_PATHS = [
+	'/profile',
+	'/documents',
+	'/settings',
+	'/onboarding',
+	'/share',
+	'/auth',
+	'/api',
+	'/v1'
+];
 
 worker.addEventListener('install', (event) => {
 	event.waitUntil(

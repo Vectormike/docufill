@@ -4,6 +4,7 @@ import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
+	envDir: '../../',
 	plugins: [
 		tailwindcss(),
 		sveltekit({

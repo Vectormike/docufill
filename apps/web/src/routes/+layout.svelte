@@ -1,7 +1,6 @@
 <script lang="ts">
 	import '@fontsource-variable/manrope';
-	// Weight axis only; the unicode-range split keeps non-Latin files unfetched.
-	import '@fontsource-variable/newsreader/wght.css';
+	import '@fontsource-variable/newsreader';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import ConnectivityBanner from '$lib/components/ConnectivityBanner.svelte';

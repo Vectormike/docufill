@@ -37,7 +37,7 @@
 {#if !installed}
 	<div class="relative">
 		<Button variant="ghost" onclick={install} aria-expanded={showIosHelp}>
-			<Download size={17} />
+			<Download size={17} strokeWidth={1.6} />
 			Install app
 		</Button>
 		{#if showIosHelp}

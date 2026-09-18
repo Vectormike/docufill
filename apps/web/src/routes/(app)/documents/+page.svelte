@@ -78,12 +78,12 @@
 <main class="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
 	<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
 		<div>
-			<h1 class="text-2xl font-semibold tracking-tight text-ink">Documents</h1>
+			<h1 class="ask text-2xl leading-8 text-ink">Documents</h1>
 			<p class="mt-1 text-sm text-ink-muted">{overview}</p>
 		</div>
 		<a
 			href={resolve('/documents/new')}
-			class="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-control border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-[#211d14] transition hover:brightness-95"
+			class="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-control border border-ink bg-ink px-4 py-2.5 text-sm font-semibold text-canvas transition hover:opacity-90"
 		>
 			<FilePlus2 size={17} /> New document
 		</a>
@@ -122,7 +122,7 @@
 				</p>
 				<a
 					href={resolve('/documents/new')}
-					class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-brand bg-brand px-4 py-2.5 text-sm font-semibold text-[#211d14]"
+					class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-control border border-ink bg-ink px-4 py-2.5 text-sm font-semibold text-canvas"
 				>
 					Upload a PDF <ArrowRight size={16} />
 				</a>
@@ -153,7 +153,7 @@
 							{#if document.status === 'processing'}
 								<div class="mt-2.5 h-1 overflow-hidden rounded-full bg-line">
 									<div
-										class="h-full rounded-full bg-brand transition-all"
+										class="h-full rounded-full bg-ink transition-all"
 										style={`width: ${document.progress}%`}
 									></div>
 								</div>

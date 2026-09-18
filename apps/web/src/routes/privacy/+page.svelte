@@ -24,9 +24,10 @@
 
 	<h2>What we collect</h2>
 	<p>
-		We process account details, reusable profile facts you choose to save, uploaded documents,
-		answers, signatures, participant contact details, consent records, and security/audit events. We
-		derive limited facts—such as employment duration—only from confirmed information.
+		We process account details, details you choose to share after sign-in or later in your profile,
+		uploaded documents, answers, signatures, participant contact details, consent records, and
+		security/audit events. We derive limited facts—such as employment duration—only from confirmed
+		information.
 	</p>
 
 	<h2>Why we use it</h2>

@@ -16,7 +16,7 @@
 	} = $props();
 
 	const variants = {
-		primary: 'border-brand bg-brand text-[#211d14] hover:brightness-95',
+		primary: 'border-ink bg-ink text-canvas hover:opacity-90',
 		secondary: 'border-line bg-surface-raised text-ink hover:bg-canvas',
 		ghost: 'border-transparent bg-transparent text-ink-muted hover:bg-canvas hover:text-ink',
 		danger: 'border-negative/25 bg-negative/8 text-negative hover:bg-negative/12'

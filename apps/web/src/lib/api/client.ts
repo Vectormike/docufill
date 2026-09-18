@@ -1,5 +1,7 @@
 import type { components } from './generated/schema';
-import { currentSession } from '$lib/auth';
+import { goto } from '$app/navigation';
+import { resolve } from '$app/paths';
+import { currentSession, signOut } from '$lib/auth';
 import { apiBaseUrl } from '$lib/supabase';
 
 type Schema<Name extends keyof components['schemas']> = components['schemas'][Name];
@@ -43,6 +45,11 @@ async function request<T>(
 	const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers, cache: 'no-store' });
 	if (!response.ok) {
 		const payload = await response.json().catch(() => null);
+		const ownerRequest = !options.public && !options.participantSession;
+		if (response.status === 401 && ownerRequest) {
+			await returnToSignIn();
+			throw new ApiError('Your session expired. Please sign in again.', 'unauthorized', 401);
+		}
 		throw new ApiError(
 			payload?.error?.message ?? 'Something went wrong. Please try again.',
 			payload?.error?.code ?? 'request_failed',
@@ -51,6 +58,13 @@ async function request<T>(
 	}
 	if (response.status === 204) return undefined as T;
 	return response.json() as Promise<T>;
+}
+
+// A rejected token stays in storage until it is cleared, so sign out before
+// returning home or the next request repeats the same failure.
+async function returnToSignIn() {
+	await signOut().catch(() => undefined);
+	await goto(resolve('/'), { replaceState: true });
 }
 
 export const api = {

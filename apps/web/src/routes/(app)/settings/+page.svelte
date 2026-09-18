@@ -52,7 +52,7 @@
 <svelte:head><title>Privacy and settings — Docufill</title></svelte:head>
 
 <main class="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-12">
-	<h1 class="text-2xl font-semibold tracking-tight text-ink">Privacy and settings</h1>
+	<h1 class="ask text-2xl leading-8 text-ink">Privacy and settings</h1>
 	<p class="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
 		Access, export, correct, or delete your information. Sensitive document content remains
 		online-only.

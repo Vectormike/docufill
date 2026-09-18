@@ -7,6 +7,7 @@ test('landing experience is accessible, responsive, and fast', async ({ page }) 
 	await expect(page).toHaveTitle(/Docufill.*Fill forms once/);
 	await expect(page.getByRole('heading', { level: 1 })).toContainText('Fill forms once');
 	await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
+	await expect(page.getByText('optional questions', { exact: false })).toBeVisible();
 
 	const accessibility = await new AxeBuilder({ page }).analyze();
 	expect(

@@ -76,7 +76,7 @@ impl AuthService {
             .await
             .map_err(|_| AppError::Upstream)?;
 
-        if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+        if rejects_the_token(response.status()) {
             return Err(AppError::Unauthorized);
         }
         if !response.status().is_success() {
@@ -105,6 +105,13 @@ impl AuthUser {
     pub fn has_recent_authentication(&self) -> bool {
         Utc::now() - self.authenticated_at <= ChronoDuration::minutes(15)
     }
+}
+
+/// Supabase answers 401 when a token is absent and 403 when it is expired or
+/// malformed, so both mean the caller must sign in again rather than that the
+/// identity provider is unavailable.
+fn rejects_the_token(status: reqwest::StatusCode) -> bool {
+    status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN
 }
 
 fn token_authentication(token: &str) -> AppResult<Option<(DateTime<Utc>, String)>> {
@@ -171,6 +178,16 @@ mod tests {
 
         assert_eq!(parsed.0.timestamp(), 1_700_000_100);
         assert_eq!(parsed.1, "totp");
+    }
+
+    #[test]
+    fn expired_tokens_ask_for_sign_in_instead_of_reporting_an_outage() {
+        assert!(rejects_the_token(reqwest::StatusCode::UNAUTHORIZED));
+        assert!(rejects_the_token(reqwest::StatusCode::FORBIDDEN));
+        assert!(!rejects_the_token(reqwest::StatusCode::TOO_MANY_REQUESTS));
+        assert!(!rejects_the_token(
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR
+        ));
     }
 
     #[test]

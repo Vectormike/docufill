@@ -88,7 +88,7 @@
 		<ArrowLeft size={17} /> Documents
 	</a>
 	<div class="mt-5">
-		<h1 class="text-2xl font-semibold tracking-tight text-ink">New document</h1>
+		<h1 class="ask text-2xl leading-8 text-ink">New document</h1>
 		<p class="mt-1 text-sm leading-6 text-ink-muted">
 			Upload a fillable or text-based PDF. Your original remains unchanged in private storage.
 		</p>
@@ -205,7 +205,7 @@
 				</div>
 				<div class="mt-3 h-2 overflow-hidden rounded-full bg-line">
 					<div
-						class="h-full rounded-full bg-brand transition-all duration-300"
+						class="h-full rounded-full bg-ink transition-all duration-300"
 						style={`width: ${progress}%`}
 					></div>
 				</div>

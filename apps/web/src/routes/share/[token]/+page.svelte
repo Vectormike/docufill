@@ -12,7 +12,7 @@
 	} from '$lib/api/client';
 	import BrandMark from '$lib/components/BrandMark.svelte';
 	import Button from '$lib/components/Button.svelte';
-	import QuestionCard from '$lib/components/QuestionCard.svelte';
+	import QuestionLine from '$lib/components/QuestionLine.svelte';
 	import SignatureCapture from '$lib/components/SignatureCapture.svelte';
 
 	type Step = 'landing' | 'verify' | 'questions' | 'signature' | 'review' | 'receipt';
@@ -25,7 +25,7 @@
 	let sessionToken = $state('');
 	let code = $state('');
 	let step = $state<Step>('landing');
-	let current = $state(0);
+	let activeFieldId = $state('');
 	let loading = $state(true);
 	let working = $state(false);
 	let error = $state('');
@@ -93,10 +93,7 @@
 	async function loadAssignment() {
 		try {
 			assignment = await api.assignment(token, sessionToken);
-			current = Math.max(
-				0,
-				questions.findIndex((field) => !field.confirmed_at)
-			);
+			activeFieldId = nextGapId() ?? questions[0]?.id ?? '';
 			step = questions.length ? 'questions' : signatureField ? 'signature' : 'review';
 		} catch (cause) {
 			sessionStorage.removeItem(sessionKey);
@@ -106,10 +103,9 @@
 		}
 	}
 
-	async function saveAnswer(value: string) {
-		const field = questions[current];
-		if (!field || !assignment) return;
-		const updated = await api.answerAssignedField(token, field.id, value, sessionToken);
+	async function saveAnswer(fieldId: string, value: string) {
+		if (!assignment) return;
+		const updated = await api.answerAssignedField(token, fieldId, value, sessionToken);
 		replaceField(updated);
 	}
 
@@ -141,8 +137,15 @@
 		};
 	}
 
+	function nextGapId(after = activeFieldId) {
+		const start = questions.findIndex((field) => field.id === after);
+		const ordered = [...questions.slice(start + 1), ...questions.slice(0, start + 1)];
+		return ordered.find((field) => !field.confirmed_at)?.id;
+	}
+
 	function nextQuestion() {
-		if (current < questions.length - 1) current += 1;
+		const next = nextGapId();
+		if (next) activeFieldId = next;
 		else step = signatureField && !signatureField.confirmed_at ? 'signature' : 'review';
 	}
 
@@ -276,16 +279,35 @@
 					{/if}
 				</div>
 			</section>
-		{:else if step === 'questions' && questions[current]}
-			<QuestionCard
-				field={questions[current]}
-				index={current}
-				total={questions.length}
-				onsave={saveAnswer}
-				onreject={async () => {}}
-				onback={() => (current = Math.max(0, current - 1))}
-				onnext={nextQuestion}
-			/>
+		{:else if step === 'questions'}
+			<section class="surface overflow-hidden">
+				<div class="border-b border-line px-4 py-5 sm:px-7 sm:py-6">
+					<h2 class="ask text-xl leading-7 text-ink sm:text-2xl sm:leading-8">
+						<span class="mark"
+							>{questions.length}
+							{questions.length === 1 ? 'question' : 'questions'}</span
+						> for you.
+					</h2>
+					<p class="mt-2 text-sm leading-6 text-ink-muted">
+						You will not see the rest of the form or anyone else's answers.
+					</p>
+				</div>
+				{#each questions as field, index (field.id)}
+					<QuestionLine
+						{field}
+						number={index + 1}
+						active={field.id === activeFieldId}
+						onactivate={() => (activeFieldId = field.id)}
+						onsave={(value) => saveAnswer(field.id, value)}
+						onreject={async () => {}}
+						onnext={nextQuestion}
+					/>
+				{/each}
+				<div class="flex items-center justify-between gap-3 px-4 py-4 sm:px-7 sm:py-5">
+					<p class="gutter">autosaved · encrypted</p>
+					<Button onclick={nextQuestion}>Continue</Button>
+				</div>
+			</section>
 		{:else if step === 'signature' && signatureField}
 			<section class="surface p-6 sm:p-8">
 				<p class="eyebrow mb-2">Assigned signature</p>
@@ -316,7 +338,7 @@
 								onclick={() => {
 									if (field.kind === 'signature') step = 'signature';
 									else {
-										current = questions.findIndex((item) => item.id === field.id);
+										activeFieldId = field.id;
 										step = 'questions';
 									}
 								}}>Edit</button
@@ -344,9 +366,7 @@
 				>
 					<CheckCircle2 size={30} />
 				</div>
-				<h2 class="mt-5 text-xl font-semibold tracking-tight text-ink">
-					Your section is submitted
-				</h2>
+				<h2 class="ask mt-5 text-xl leading-8 text-ink">Your section is submitted</h2>
 				<p class="mt-2 text-sm text-ink-muted">
 					The requester can now continue their document workflow.
 				</p>
@@ -361,7 +381,7 @@
 				{/if}
 				<a
 					href={resolve('/')}
-					class="mt-7 inline-flex min-h-11 items-center rounded-control bg-brand px-5 text-sm font-extrabold text-[#211d14]"
+					class="mt-7 inline-flex min-h-11 items-center rounded-control bg-ink px-5 text-sm font-semibold text-canvas"
 				>
 					Create your own Docufill account
 				</a>

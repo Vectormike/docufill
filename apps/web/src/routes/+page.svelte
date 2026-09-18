@@ -113,11 +113,9 @@
 			<div class:logo-drop={animateLogo} class="mb-8 inline-flex">
 				<BrandMark size="lg" showWordmark={false} />
 			</div>
-			<p class="eyebrow mb-3">Your personal document agent</p>
-			<h1
-				class="text-4xl leading-[1.05] font-semibold tracking-tight text-balance text-ink sm:text-5xl"
-			>
-				Fill forms once.
+			<p class="gutter mb-4">Your personal document agent</p>
+			<h1 class="ask text-4xl leading-[1.1] text-balance text-ink sm:text-5xl">
+				Fill forms <span class="mark">once.</span>
 				<span class="text-ink-muted">Never fill them again.</span>
 			</h1>
 			<p class="mt-6 max-w-lg text-lg leading-8 text-balance text-ink-muted">
@@ -143,10 +141,10 @@
 			>
 				<FeatureIllustration feature={features[current].key} />
 				<div class="px-3 pt-6 pb-3 sm:px-5">
-					<p class="mb-1.5 text-xs text-ink-muted">
+					<p class="gutter mb-2">
 						{current + 1} of {features.length}
 					</p>
-					<h2 class="text-xl font-semibold tracking-tight text-ink">
+					<h2 class="ask text-xl leading-7 text-ink">
 						{features[current].title}
 					</h2>
 					<p class="mt-2 min-h-14 text-sm leading-6 text-ink-muted">{features[current].body}</p>
@@ -156,9 +154,7 @@
 								<button
 									type="button"
 									onclick={() => (current = index)}
-									class="h-2 rounded-full transition-all {index === current
-										? 'w-7 bg-brand'
-										: 'w-2 bg-line'}"
+									class="h-[3px] transition-all {index === current ? 'w-7 bg-ink' : 'w-3 bg-line'}"
 									aria-label={`Show feature ${index + 1}`}
 									aria-current={index === current ? 'step' : undefined}
 								></button>
@@ -184,10 +180,10 @@
 	<section id="sign-in" class="mx-auto max-w-6xl px-5 pb-14 sm:px-8">
 		<div class="surface grid gap-7 p-6 sm:p-8 lg:grid-cols-[1fr_1.05fr] lg:items-center">
 			<div>
-				<h2 class="text-2xl font-semibold tracking-tight text-ink">Your profile grows with you.</h2>
+				<h2 class="ask text-2xl leading-8 text-ink">Your profile grows with you.</h2>
 				<p class="mt-3 max-w-md text-sm leading-6 text-ink-muted">
-					We begin with your verified name and email. No long onboarding form and no speculative
-					personal data collection.
+					After you sign in, we ask a few optional questions—name, phone, address, and work—so the
+					next form is already half filled. Skip anything you would rather add later.
 				</p>
 			</div>
 			<div class="rounded-control border border-line bg-canvas p-4 sm:p-5">

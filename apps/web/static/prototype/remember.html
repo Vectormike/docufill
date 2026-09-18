@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en-NG">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Docufill — remembers and auto-fills</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				--canvas: #f7f3ea;
+				--surface: #fffdf8;
+				--ink: #14110c;
+				--muted: #3a3429;
+				--line: #1f1a12;
+				--soft: #efe6d4;
+				--brand: #f0c14b;
+				--mark: #ffe27a;
+				--positive: #1f6b42;
+				--ease: cubic-bezier(0.16, 1, 0.3, 1);
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				margin: 0;
+				min-height: 100%;
+				background: #16140f;
+				color: var(--ink);
+				font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
+			}
+			body {
+				display: grid;
+				place-items: center;
+				min-height: 100vh;
+				padding: 24px;
+			}
+			.player {
+				position: relative;
+				width: min(100%, 1120px);
+				aspect-ratio: 16 / 9;
+				overflow: hidden;
+				background: var(--canvas);
+				box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+			}
+			body.record {
+				padding: 0;
+				background: var(--canvas);
+			}
+			body.record .player {
+				width: 100vw;
+				height: 100vh;
+				aspect-ratio: auto;
+				box-shadow: none;
+			}
+			.scene {
+				position: absolute;
+				inset: 0;
+				display: grid;
+				place-items: center;
+				padding: 48px 36px;
+				background: var(--canvas);
+				opacity: 0;
+				visibility: hidden;
+			}
+			.scene.is-on {
+				opacity: 1;
+				visibility: visible;
+			}
+			h1,
+			h2,
+			h3 {
+				margin: 0;
+				letter-spacing: -0.01em;
+			}
+			.ask {
+				font-family: Newsreader, Georgia, serif;
+				font-weight: 400;
+			}
+			.mark {
+				background: var(--mark);
+				padding: 0 0.18em;
+			}
+			.logo {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-weight: 700;
+			}
+			.card {
+				width: min(1080px, 100%);
+				border: 2px solid var(--ink);
+				background: var(--surface);
+			}
+			.title {
+				text-align: center;
+			}
+			.title .logo {
+				justify-content: center;
+				margin-bottom: 20px;
+			}
+			.scene.is-on .title .logo {
+				animation: rise 700ms var(--ease) both;
+			}
+			.title h1 {
+				font-size: clamp(46px, 5.6vw, 72px);
+				line-height: 1.06;
+				font-weight: 800;
+			}
+			.title .quiet {
+				color: var(--muted);
+			}
+			.title p {
+				max-width: 40rem;
+				margin: 18px auto 0;
+				font-size: 22px;
+				line-height: 1.45;
+				color: var(--muted);
+				font-weight: 600;
+			}
+			.kicker {
+				margin: 0 0 8px;
+				font-size: 15px;
+				font-weight: 800;
+				color: var(--ink);
+			}
+			.work {
+				display: grid;
+				grid-template-columns: 0.95fr 1.05fr;
+				align-items: stretch;
+			}
+			.work .copy,
+			.work .sheet {
+				min-height: 390px;
+				padding: 22px 24px;
+			}
+			.work .copy {
+				border-right: 2px solid var(--ink);
+			}
+			.work .copy h2 {
+				font-size: 30px;
+				line-height: 1.12;
+				font-weight: 800;
+			}
+			.work .copy p {
+				margin: 10px 0 0;
+				font-size: 16px;
+				line-height: 1.45;
+				font-weight: 600;
+				color: var(--muted);
+			}
+			.sheet {
+				background: #d8d0c2;
+				display: grid;
+				place-items: center;
+			}
+			.paper {
+				width: min(390px, 100%);
+				padding: 16px 18px 14px;
+				background: #fff;
+				border: 2px solid var(--ink);
+				box-shadow: 7px 8px 0 var(--ink);
+			}
+			.paper-meta {
+				margin: 0 0 8px;
+				font-size: 11px;
+				font-weight: 800;
+				letter-spacing: 0.06em;
+				text-transform: uppercase;
+				color: #6d6558;
+			}
+			.paper h3 {
+				font-family: Newsreader, Georgia, serif;
+				font-size: 20px;
+				line-height: 1.15;
+			}
+			.paper-sub {
+				margin: 4px 0 10px;
+				font-size: 12px;
+				font-weight: 600;
+				color: #6d6558;
+			}
+			.sec {
+				margin: 12px 0 4px;
+				padding: 3px 6px;
+				background: var(--ink);
+				color: #fff8e4;
+				font-size: 11px;
+				font-weight: 800;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+			.line {
+				display: grid;
+				grid-template-columns: 132px 1fr;
+				gap: 8px;
+				align-items: end;
+				padding: 5px 4px;
+				border-bottom: 1px solid #e4dccb;
+				font-size: 12px;
+				font-weight: 700;
+			}
+			.line span {
+				color: #6d6558;
+			}
+			.val {
+				min-height: 16px;
+				color: transparent;
+				border-bottom: 1px solid #cfc6b6;
+			}
+			.paper.all .val,
+			.paper .val.show {
+				color: var(--ink);
+				border-bottom-color: transparent;
+			}
+			.line.on {
+				background: #fff4c4;
+				box-shadow: inset 0 0 0 2px var(--brand);
+			}
+			.facts {
+				margin-top: 16px;
+				display: grid;
+				gap: 8px;
+			}
+			.fact {
+				display: grid;
+				grid-template-columns: 22px 1fr auto;
+				gap: 10px;
+				align-items: center;
+				padding: 6px 10px;
+				border: 2px solid var(--ink);
+				background: #fff;
+				font-size: 14px;
+				font-weight: 700;
+			}
+			.fact .box {
+				width: 16px;
+				height: 16px;
+				border: 2px solid var(--ink);
+				display: grid;
+				place-items: center;
+				font-size: 12px;
+				background: #fff;
+			}
+			.fact.saved .box {
+				background: #b8e7c8;
+			}
+			.fact.on {
+				background: var(--mark);
+			}
+			.fact small {
+				font-size: 12px;
+				font-weight: 800;
+				color: #6d6558;
+			}
+			.fact.saved small {
+				color: var(--positive);
+			}
+			.vault {
+				width: min(360px, 100%);
+				padding: 16px 18px;
+				background: var(--surface);
+				border: 2px solid var(--ink);
+				box-shadow: 7px 8px 0 var(--ink);
+			}
+			.vault h3 {
+				font-size: 22px;
+				font-weight: 800;
+			}
+			.vault p {
+				margin: 6px 0 12px;
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--muted);
+			}
+			.v-row {
+				display: flex;
+				justify-content: space-between;
+				gap: 12px;
+				padding: 8px 0;
+				border-bottom: 1px solid #e4dccb;
+				font-size: 14px;
+				font-weight: 700;
+			}
+			.v-row span {
+				color: #6d6558;
+			}
+			.v-row.on {
+				background: var(--mark);
+				margin: 0 -8px;
+				padding: 8px;
+			}
+			.v-row.used b::after {
+				content: ' → form';
+				font-size: 11px;
+				font-weight: 800;
+				color: var(--positive);
+			}
+			.browser {
+				width: min(420px, 100%);
+				background: #fff;
+				border: 2px solid var(--ink);
+				box-shadow: 7px 8px 0 var(--ink);
+				overflow: hidden;
+			}
+			.browser-bar {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 10px 12px;
+				background: var(--soft);
+				border-bottom: 2px solid var(--ink);
+				font-size: 12px;
+				font-weight: 800;
+			}
+			.dots {
+				display: flex;
+				gap: 4px;
+			}
+			.dots i {
+				width: 8px;
+				height: 8px;
+				background: var(--ink);
+			}
+			.url {
+				flex: 1;
+				padding: 4px 8px;
+				background: #fff;
+				border: 1.5px solid var(--ink);
+			}
+			.browser-body {
+				padding: 14px 16px 16px;
+			}
+			.browser-body h3 {
+				font-family: Newsreader, Georgia, serif;
+				font-size: 20px;
+			}
+			.web-field {
+				margin-top: 10px;
+			}
+			.web-field label {
+				display: block;
+				font-size: 11px;
+				font-weight: 800;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+				color: #6d6558;
+			}
+			.web-field b {
+				display: block;
+				min-height: 28px;
+				margin-top: 4px;
+				padding: 6px 8px;
+				border: 1.5px solid #cfc6b6;
+				font-size: 14px;
+				font-weight: 700;
+				color: transparent;
+			}
+			.web-field.filled b {
+				color: var(--ink);
+				border-color: var(--ink);
+				background: #fff;
+			}
+			.web-field.on b {
+				background: #fff4c4;
+				border-color: var(--brand);
+			}
+			.stats {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+				margin-top: 18px;
+			}
+			.stats div {
+				padding: 14px;
+				border: 2px solid var(--ink);
+				font-weight: 700;
+				font-size: 15px;
+			}
+			.stats strong {
+				display: block;
+				font-size: 32px;
+			}
+			.note {
+				margin: 12px 0 0;
+				font-size: 16px;
+				font-weight: 800;
+				color: var(--ink);
+			}
+			.end {
+				text-align: center;
+			}
+			.end h1 {
+				font-size: clamp(40px, 5vw, 62px);
+				line-height: 1.08;
+				font-weight: 800;
+			}
+			.end p {
+				max-width: 36rem;
+				margin: 16px auto 0;
+				font-size: 22px;
+				line-height: 1.45;
+				color: var(--muted);
+				font-weight: 600;
+			}
+			@keyframes rise {
+				from {
+					opacity: 0;
+					transform: translateY(-24px);
+				}
+				to {
+					opacity: 1;
+					transform: none;
+				}
+			}
+			@media (max-width: 800px) {
+				body {
+					padding: 0;
+				}
+				.player {
+					width: 100%;
+					height: 100vh;
+					aspect-ratio: auto;
+				}
+				.scene {
+					padding: 28px 16px;
+				}
+				.work {
+					grid-template-columns: 1fr;
+				}
+				.work .copy {
+					border: 0;
+					border-top: 1px solid var(--line);
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="player">
+			<section class="scene is-on" data-scene="title">
+				<div class="title">
+					<div class="logo">
+						<svg width="52" height="52" viewBox="0 0 48 48" aria-hidden="true">
+							<rect width="48" height="48" rx="14" fill="var(--brand)" />
+							<path d="M14 9h14l7 7v23H14V9Z" fill="var(--ink)" />
+							<path d="M28 9v8h7" fill="var(--brand)" />
+							<path
+								d="M19 23h11M19 28h9M19 33h6"
+								stroke="var(--brand)"
+								stroke-linecap="round"
+								stroke-width="2.5"
+							/>
+						</svg>
+					</div>
+					<h1>Confirm once.<br /><span class="quiet">The next form fills itself.</span></h1>
+					<p>
+						Docufill remembers only what Chinedu confirms. The next PDF — and a web application —
+						write those answers back in.
+					</p>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="save">
+				<div class="card work">
+					<div class="copy">
+						<p class="kicker">After the tenancy form</p>
+						<h2>Save the details he confirmed.</h2>
+						<p>
+							Name, email, phone, address, and employer go into his vault. Adaeze’s guarantor
+							answers stay on that document.
+						</p>
+						<div class="facts" id="save-facts">
+							<div class="fact" data-fact="name">
+								<i class="box"></i>
+								<div>Full name · Chinedu Okonkwo</div>
+								<small>Wait</small>
+							</div>
+							<div class="fact" data-fact="email">
+								<i class="box"></i>
+								<div>Email · chinedu@bujeti.com</div>
+								<small>Wait</small>
+							</div>
+							<div class="fact" data-fact="phone">
+								<i class="box"></i>
+								<div>Phone · +234 803 555 0142</div>
+								<small>Wait</small>
+							</div>
+							<div class="fact" data-fact="address">
+								<i class="box"></i>
+								<div>Address · Victoria Island, Lagos</div>
+								<small>Wait</small>
+							</div>
+							<div class="fact" data-fact="employer">
+								<i class="box"></i>
+								<div>Employer · Bujeti Limited</div>
+								<small>Wait</small>
+							</div>
+						</div>
+					</div>
+					<div class="sheet">
+						<article class="paper all">
+							<p class="paper-meta">Completed · Tenancy Application.pdf</p>
+							<h3>Residential Tenancy Application</h3>
+							<p class="paper-sub">14 Admiralty Way, Lekki Phase 1, Lagos</p>
+							<p class="sec">Applicant</p>
+							<div class="line"><span>Full legal name</span><b class="val show">Chinedu Okonkwo</b></div>
+							<div class="line"><span>Email</span><b class="val show">chinedu@bujeti.com</b></div>
+							<div class="line"><span>Phone</span><b class="val show">+234 803 555 0142</b></div>
+							<div class="line"><span>Current employer</span><b class="val show">Bujeti Limited</b></div>
+							<p class="sec">Guarantor</p>
+							<div class="line"><span>Full name</span><b class="val show">Adaeze Okonkwo</b></div>
+							<div class="line"><span>Relationship</span><b class="val show">Sister</b></div>
+							<p class="paper-sub" style="margin-top: 12px">Guest answers are not saved to his vault.</p>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="vault">
+				<div class="card work">
+					<div class="copy">
+						<p class="kicker">My details</p>
+						<h2>This is all Docufill keeps.</h2>
+						<p>
+							Only confirmed facts. Encrypted. Ready for the next form. Nothing from Adaeze. Nothing
+							he did not approve.
+						</p>
+						<p class="note">Next time, these lines write themselves.</p>
+					</div>
+					<div class="sheet">
+						<div class="vault" id="vault-card">
+							<p class="kicker">Chinedu’s vault</p>
+							<h3 class="ask">Reusable details</h3>
+							<p>Saved 12 March · used on the next document</p>
+							<div class="v-row" data-v="name"><span>Full name</span><b>Chinedu Okonkwo</b></div>
+							<div class="v-row" data-v="email"><span>Email</span><b>chinedu@bujeti.com</b></div>
+							<div class="v-row" data-v="phone"><span>Phone</span><b>+234 803 555 0142</b></div>
+							<div class="v-row" data-v="address"><span>Address</span><b>18 Bishop Oluwole St</b></div>
+							<div class="v-row" data-v="employer"><span>Employer</span><b>Bujeti Limited</b></div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="next">
+				<div class="card work">
+					<div class="copy">
+						<p class="kicker">Three weeks later</p>
+						<h2>A new HR form. Same person.</h2>
+						<p>
+							Chinedu uploads <b>Employment Onboarding.pdf</b>. The page is blank. Docufill already
+							knows most of it.
+						</p>
+						<div class="stats">
+							<div><strong>5</strong>from his vault</div>
+							<div><strong>1</strong>still missing</div>
+						</div>
+					</div>
+					<div class="sheet">
+						<article class="paper" id="doc-blank">
+							<p class="paper-meta">Employment Onboarding.pdf · Page 1</p>
+							<h3>New Employee Onboarding</h3>
+							<p class="paper-sub">Bujeti Limited · People Operations</p>
+							<p class="sec">Employee</p>
+							<div class="line" data-box="name"><span>Full legal name</span><b class="val">Chinedu Okonkwo</b></div>
+							<div class="line" data-box="email"><span>Work email</span><b class="val">chinedu@bujeti.com</b></div>
+							<div class="line" data-box="phone"><span>Phone</span><b class="val">+234 803 555 0142</b></div>
+							<div class="line" data-box="address"><span>Home address</span><b class="val">18 Bishop Oluwole St</b></div>
+							<div class="line" data-box="employer"><span>Current employer</span><b class="val">Bujeti Limited</b></div>
+							<div class="line" data-box="start"><span>Start date</span><b class="val">1 April 2026</b></div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="fill">
+				<div class="card work">
+					<div class="copy">
+						<p class="kicker">Auto-fill</p>
+						<h2 id="fill-title">Name is already known.</h2>
+						<p id="fill-body">It writes onto the new PDF from his vault. He does not type it again.</p>
+						<div class="facts" id="fill-facts">
+							<div class="fact" data-fill="name">
+								<i class="box"></i>
+								<div>Full name</div>
+								<small>From profile</small>
+							</div>
+							<div class="fact" data-fill="email">
+								<i class="box"></i>
+								<div>Email</div>
+								<small>From profile</small>
+							</div>
+							<div class="fact" data-fill="phone">
+								<i class="box"></i>
+								<div>Phone</div>
+								<small>From profile</small>
+							</div>
+							<div class="fact" data-fill="address">
+								<i class="box"></i>
+								<div>Address</div>
+								<small>From profile</small>
+							</div>
+							<div class="fact" data-fill="employer">
+								<i class="box"></i>
+								<div>Employer</div>
+								<small>From profile</small>
+							</div>
+							<div class="fact" data-fill="start">
+								<i class="box"></i>
+								<div>Start date</div>
+								<small>Needs an answer</small>
+							</div>
+						</div>
+					</div>
+					<div class="sheet">
+						<article class="paper" id="doc-fill">
+							<p class="paper-meta">Live PDF preview</p>
+							<h3>New Employee Onboarding</h3>
+							<p class="paper-sub">Bujeti Limited · People Operations</p>
+							<p class="sec">Employee</p>
+							<div class="line" data-box="name"><span>Full legal name</span><b class="val">Chinedu Okonkwo</b></div>
+							<div class="line" data-box="email"><span>Work email</span><b class="val">chinedu@bujeti.com</b></div>
+							<div class="line" data-box="phone"><span>Phone</span><b class="val">+234 803 555 0142</b></div>
+							<div class="line" data-box="address"><span>Home address</span><b class="val">18 Bishop Oluwole St</b></div>
+							<div class="line" data-box="employer"><span>Current employer</span><b class="val">Bujeti Limited</b></div>
+							<div class="line" data-box="start"><span>Start date</span><b class="val" id="start-val">1 April 2026</b></div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="web">
+				<div class="card work">
+					<div class="copy">
+						<p class="kicker">Same vault. A web application.</p>
+						<h2>The school form fills the same way.</h2>
+						<p>
+							No new typing for name, email, phone, or address. Only programme is still empty —
+							that question is new.
+						</p>
+						<p class="note" id="web-note">Known details land from his profile.</p>
+					</div>
+					<div class="sheet">
+						<div class="browser" id="web-app">
+							<div class="browser-bar">
+								<span class="dots"><i></i><i></i><i></i></span>
+								<span class="url">apply.unilag.edu.ng / part-time</span>
+							</div>
+							<div class="browser-body">
+								<h3>Part-time application</h3>
+								<div class="web-field" data-web="name">
+									<label>Full name</label>
+									<b>Chinedu Okonkwo</b>
+								</div>
+								<div class="web-field" data-web="email">
+									<label>Email</label>
+									<b>chinedu@bujeti.com</b>
+								</div>
+								<div class="web-field" data-web="phone">
+									<label>Phone</label>
+									<b>+234 803 555 0142</b>
+								</div>
+								<div class="web-field" data-web="address">
+									<label>Home address</label>
+									<b>18 Bishop Oluwole St, VI</b>
+								</div>
+								<div class="web-field" data-web="programme">
+									<label>Programme</label>
+									<b>Needs you</b>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="scene" data-scene="end">
+				<div class="end">
+					<h1>He typed one new line.<br />The rest came back.</h1>
+					<p>
+						Docufill remembers only confirmed details. The next PDF and the next web application
+						are already half filled.
+					</p>
+				</div>
+			</section>
+
+		</div>
+		<script>
+			const DURATION = 50000;
+			const scenes = [
+				{ id: 'title', at: 0 },
+				{ id: 'save', at: 5000 },
+				{ id: 'vault', at: 13000 },
+				{ id: 'next', at: 19000 },
+				{ id: 'fill', at: 25500 },
+				{ id: 'web', at: 40000 },
+				{ id: 'end', at: 46000 }
+			];
+			const fillCopy = {
+				name: ['Name is already known.', 'It writes onto the new PDF from his vault.'],
+				email: ['Email is reused.', 'He checks it. He does not retype it.'],
+				phone: ['Phone lands the same way.', 'One confirmed number, every form after.'],
+				address: ['Home address is in the vault.', 'The HR form copies it onto the page.'],
+				employer: ['Employer was confirmed last time.', 'Bujeti Limited writes itself in.'],
+				start: ['Start date is new.', 'This is the only line he types.']
+			};
+			const startDate = '1 April 2026';
+			let started = 0;
+			let elapsed = 0;
+			let playing = true;
+			let frame = 0;
+			let lastStart = -1;
+			const nodes = Object.fromEntries(
+				scenes.map((s) => [s.id, document.querySelector(`[data-scene="${s.id}"]`)])
+			);
+			const saveFacts = [...document.querySelectorAll('#save-facts .fact')];
+			const fillFacts = [...document.querySelectorAll('#fill-facts .fact')];
+			const fillTitle = document.getElementById('fill-title');
+			const fillBody = document.getElementById('fill-body');
+			const docFill = document.getElementById('doc-fill');
+			const startVal = document.getElementById('start-val');
+			const webNote = document.getElementById('web-note');
+			const webFields = [...document.querySelectorAll('#web-app .web-field')];
+
+			function apply(time) {
+				const current = [...scenes].reverse().find((s) => time >= s.at) ?? scenes[0];
+				for (const [id, node] of Object.entries(nodes)) node.classList.toggle('is-on', id === current.id);
+
+				if (current.id === 'save') {
+					const local = time - 5000;
+					const n = Math.min(saveFacts.length, Math.floor(local / 1100));
+					saveFacts.forEach((fact, index) => {
+						const on = index === n && n < saveFacts.length;
+						const saved = index < n;
+						fact.classList.toggle('on', on);
+						fact.classList.toggle('saved', saved || (on && local % 1100 > 400));
+						fact.querySelector('.box').textContent = fact.classList.contains('saved') ? '✓' : '';
+						fact.querySelector('small').textContent = fact.classList.contains('saved')
+							? 'Saved'
+							: on
+								? 'Saving…'
+								: 'Wait';
+					});
+				}
+
+				if (current.id === 'fill') {
+					const local = time - 25500;
+					const keys = ['name', 'email', 'phone', 'address', 'employer', 'start'];
+					const idx = Math.min(keys.length - 1, Math.floor(local / 2200));
+					const key = keys[idx];
+					fillTitle.textContent = fillCopy[key][0];
+					fillBody.textContent = fillCopy[key][1];
+					fillFacts.forEach((fact) => {
+						const id = fact.dataset.fill;
+						const typed = Math.max(0, Math.floor((local - 11000) / 90));
+						const startDone = typed >= startDate.length;
+						const done = id === 'start' ? startDone : keys.indexOf(id) <= idx;
+						const on = id === key;
+						fact.classList.toggle('on', on);
+						fact.classList.toggle('saved', done);
+						fact.querySelector('.box').textContent = done ? '✓' : '';
+						fact.querySelector('small').textContent = done
+							? id === 'start'
+								? 'Written on PDF'
+								: 'From profile'
+							: on
+								? id === 'start'
+									? 'Typing…'
+									: 'Writing…'
+								: id === 'start'
+									? 'Needs an answer'
+									: 'Waiting';
+					});
+					docFill.querySelectorAll('.line').forEach((line) => {
+						const id = line.dataset.box;
+						const lineIdx = keys.indexOf(id);
+						const val = line.querySelector('.val');
+						line.classList.toggle('on', id === key);
+						if (id === 'start') {
+							const typed = Math.max(0, Math.floor((local - 11000) / 90));
+							if (typed !== lastStart) {
+								lastStart = typed;
+								startVal.textContent = typed ? startDate.slice(0, typed) : '';
+							}
+							val.classList.toggle('show', typed > 0);
+						} else {
+							val.classList.toggle('show', lineIdx <= idx);
+						}
+					});
+				} else lastStart = -1;
+
+				if (current.id === 'web') {
+					const local = time - 40000;
+					const keys = ['name', 'email', 'phone', 'address', 'programme'];
+					const idx = Math.min(keys.length - 1, Math.floor(local / 900));
+					webNote.textContent =
+						keys[idx] === 'programme'
+							? 'Programme is new, so it stays empty.'
+							: 'Known details land from his profile.';
+					webFields.forEach((field) => {
+						const id = field.dataset.web;
+						const i = keys.indexOf(id);
+						field.classList.toggle('on', id === keys[idx]);
+						field.classList.toggle('filled', i <= idx && id !== 'programme');
+					});
+				}
+			}
+
+			function tick(now) {
+				if (playing) elapsed = now - started;
+				if (elapsed >= DURATION) {
+					elapsed = DURATION;
+					playing = false;
+					apply(elapsed);
+					return;
+				}
+				apply(elapsed);
+				frame = requestAnimationFrame(tick);
+			}
+
+			function playFrom(ms) {
+				elapsed = ms;
+				started = performance.now() - ms;
+				playing = true;
+				cancelAnimationFrame(frame);
+				frame = requestAnimationFrame(tick);
+			}
+
+			const params = new URLSearchParams(location.search);
+			if (params.has('record')) document.body.classList.add('record');
+			playFrom(Number(params.get('t') || 0) * 1000);
+		</script>
+	</body>
+</html>

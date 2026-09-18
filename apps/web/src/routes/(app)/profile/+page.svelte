@@ -13,18 +13,7 @@
 	import Button from '$lib/components/Button.svelte';
 	import FactEditor from '$lib/components/FactEditor.svelte';
 	import SignatureCapture from '$lib/components/SignatureCapture.svelte';
-
-	const sectionNames: Record<string, string> = {
-		identity: 'Identity',
-		contact: 'Contact',
-		address: 'Address',
-		employment: 'Employment',
-		education: 'Education',
-		contacts: 'Next of kin & contacts',
-		financial: 'Financial',
-		identification: 'Identification',
-		custom: 'Reusable answers'
-	};
+	import { factLabel, sectionLabel } from '$lib/profile-facts';
 
 	let vault = $state<ProfileVault | null>(null);
 	let loading = $state(true);
@@ -98,7 +87,7 @@
 	}
 
 	async function deleteFact(fact: ProfileFact) {
-		if (!window.confirm(`Delete ${labelFor(fact.fact_key)} from your reusable details?`)) return;
+		if (!window.confirm(`Delete ${factLabel(fact.fact_key)} from your reusable details?`)) return;
 		await api.deleteFact(fact.id);
 		if (vault) vault = { ...vault, facts: vault.facts.filter((item) => item.id !== fact.id) };
 	}
@@ -128,10 +117,6 @@
 		notice = 'Saved signature deleted.';
 	}
 
-	function labelFor(value: string) {
-		return value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-	}
-
 	function formatDate(value: string) {
 		return new Intl.DateTimeFormat('en-NG', {
 			day: 'numeric',
@@ -145,7 +130,7 @@
 
 <main class="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
 	<div>
-		<h1 class="text-2xl font-semibold tracking-tight text-ink">Your details</h1>
+		<h1 class="ask text-2xl leading-8 text-ink">Your details</h1>
 		<p class="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
 			Save your information once so Docufill can reuse it in future documents. You always control
 			what is stored.
@@ -225,7 +210,7 @@
 				<div class="mt-6 rounded-xl border border-dashed border-line bg-canvas p-8 text-center">
 					<p class="font-bold text-ink">No reusable details yet</p>
 					<p class="mt-1 text-sm text-ink-muted">
-						Docufill can also suggest details as your first document asks for them.
+						Add them here, or let Docufill suggest details as your first document asks for them.
 					</p>
 				</div>
 			{:else}
@@ -233,13 +218,13 @@
 					{#each groupedFacts as [section, facts] (section)}
 						<div>
 							<h3 class="mb-2 text-xs font-extrabold tracking-[0.14em] text-brand-strong uppercase">
-								{sectionNames[section] ?? labelFor(section)}
+								{sectionLabel(section)}
 							</h3>
 							<div class="divide-y divide-line rounded-xl border border-line">
 								{#each facts as fact (fact.id)}
 									<div class="flex items-start gap-4 p-4">
 										<div class="min-w-0 flex-1">
-											<p class="text-sm font-extrabold text-ink">{labelFor(fact.fact_key)}</p>
+											<p class="text-sm font-extrabold text-ink">{factLabel(fact.fact_key)}</p>
 											<p class="mt-1 truncate text-sm text-ink-muted">
 												{fact.value_preview ?? 'Encrypted value'}
 											</p>
@@ -259,7 +244,7 @@
 										<Button
 											variant="ghost"
 											onclick={() => deleteFact(fact)}
-											aria-label={`Delete ${labelFor(fact.fact_key)}`}
+											aria-label={`Delete ${factLabel(fact.fact_key)}`}
 										>
 											<Trash2 size={16} />
 										</Button>

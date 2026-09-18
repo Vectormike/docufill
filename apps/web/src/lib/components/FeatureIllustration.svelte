@@ -1,91 +1,110 @@
 <script lang="ts">
 	let { feature }: { feature: 'vault' | 'questions' | 'invite' } = $props();
+
+	// Ruled rows share one rhythm so every illustration reads as the same page.
+	const rows = [48, 70, 92, 114, 136];
 </script>
 
 <div
-	class="grid aspect-[5/3] w-full place-items-center overflow-hidden rounded-[1.35rem] border border-line bg-brand-soft"
+	class="grid aspect-[5/3] w-full place-items-center overflow-hidden rounded-card border border-line bg-canvas"
 	aria-hidden="true"
 >
 	{#if feature === 'vault'}
 		<svg viewBox="0 0 320 190" class="h-full w-full">
 			<rect
-				x="58"
-				y="28"
-				width="128"
-				height="138"
-				rx="18"
-				fill="var(--surface-raised)"
+				x="70"
+				y="18"
+				width="180"
+				height="154"
+				fill="var(--surface)"
 				stroke="var(--line)"
+				rx="2"
 			/>
-			<rect x="80" y="52" width="52" height="9" rx="4.5" fill="var(--brand)" />
-			<rect x="80" y="76" width="82" height="7" rx="3.5" fill="var(--line)" />
-			<rect x="80" y="96" width="72" height="7" rx="3.5" fill="var(--line)" />
-			<rect x="80" y="116" width="88" height="7" rx="3.5" fill="var(--line)" />
-			<circle cx="214" cy="102" r="48" fill="var(--brand)" />
-			<path
-				d="M194 103l13 13 26-29"
-				fill="none"
-				stroke="#211d14"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="10"
-			/>
+			<line x1="98" y1="18" x2="98" y2="172" stroke="var(--line-soft)" stroke-width="1.5" />
+			{#each rows as row, index (row)}
+				{#if index === 2}
+					<!-- The single gap is the only thing marked; the rest came from the vault. -->
+					<rect x="106" y={row - 5} width="64" height="15" fill="var(--marker)" />
+				{/if}
+				<rect x="82" y={row} width="8" height="2" fill="var(--line)" />
+				<rect
+					x="110"
+					y={row}
+					width={index === 2 ? 44 : index === 0 ? 88 : 68}
+					height="5"
+					fill={index === 2 ? 'var(--line)' : 'var(--ink)'}
+					opacity={index === 2 ? '1' : '0.8'}
+				/>
+			{/each}
+			<line x1="110" y1="158" x2="180" y2="158" stroke="var(--line-soft)" stroke-width="1.5" />
 		</svg>
 	{:else if feature === 'questions'}
 		<svg viewBox="0 0 320 190" class="h-full w-full">
 			<rect
-				x="42"
-				y="30"
-				width="236"
-				height="130"
-				rx="22"
-				fill="var(--surface-raised)"
+				x="46"
+				y="18"
+				width="228"
+				height="154"
+				fill="var(--surface)"
 				stroke="var(--line)"
+				rx="2"
 			/>
-			<circle cx="72" cy="65" r="14" fill="var(--brand)" />
-			<rect x="98" y="57" width="118" height="8" rx="4" fill="var(--ink)" opacity=".8" />
-			<rect x="98" y="75" width="78" height="6" rx="3" fill="var(--line)" />
-			<rect
-				x="62"
-				y="105"
-				width="196"
-				height="34"
-				rx="10"
-				fill="var(--canvas)"
-				stroke="var(--line)"
-			/>
-			<path
-				d="M225 115l9 9 17-19"
-				fill="none"
-				stroke="var(--positive)"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="5"
-			/>
+			<line x1="76" y1="18" x2="76" y2="172" stroke="var(--line-soft)" stroke-width="1.5" />
+			{#each rows.slice(0, 2) as row (row)}
+				<rect x="60" y={row} width="8" height="2" fill="var(--line)" />
+				<rect x="88" y={row} width="104" height="5" fill="var(--ink)" opacity="0.82" />
+				<rect x="206" y={row} width="46" height="4" fill="var(--line)" />
+			{/each}
+
+			<rect x="60" y="92" width="8" height="2" fill="var(--ink)" />
+			<rect x="86" y="84" width="122" height="17" fill="var(--marker)" />
+			<rect x="88" y="90" width="118" height="6" fill="var(--ink)" />
+			<line x1="88" y1="120" x2="208" y2="120" stroke="var(--ink)" stroke-width="2" />
+			<rect x="88" y="108" width="5" height="10" fill="var(--ink)" />
+
+			<rect x="60" y="148" width="8" height="2" fill="var(--line)" />
+			<rect x="88" y="148" width="76" height="5" fill="var(--line)" />
+			<rect x="206" y="147" width="46" height="4" fill="var(--line)" />
 		</svg>
 	{:else}
 		<svg viewBox="0 0 320 190" class="h-full w-full">
-			<circle cx="112" cy="94" r="42" fill="var(--surface-raised)" stroke="var(--line)" />
-			<circle cx="208" cy="94" r="42" fill="var(--surface-raised)" stroke="var(--line)" />
-			<circle cx="112" cy="80" r="13" fill="var(--brand)" />
-			<path d="M88 118c8-25 40-25 48 0" fill="var(--brand)" />
-			<circle cx="208" cy="80" r="13" fill="var(--ink-muted)" />
-			<path d="M184 118c8-25 40-25 48 0" fill="var(--ink-muted)" />
+			<rect
+				x="26"
+				y="18"
+				width="132"
+				height="154"
+				fill="var(--surface)"
+				stroke="var(--line)"
+				rx="2"
+			/>
+			{#each rows as row, index (row)}
+				<rect x="42" y={row} width={index % 2 === 0 ? 96 : 74} height="5" fill="var(--ink)" />
+			{/each}
+			<rect x="42" y="158" width="52" height="5" fill="var(--line)" />
+
+			<line x1="166" y1="95" x2="196" y2="95" stroke="var(--brand-strong)" stroke-width="2" />
 			<path
-				d="M154 94h12m-6-6 6 6-6 6"
+				d="M190 89l7 6-7 6"
 				fill="none"
 				stroke="var(--brand-strong)"
+				stroke-width="2"
 				stroke-linecap="round"
 				stroke-linejoin="round"
-				stroke-width="5"
 			/>
-			<path
-				d="M211 136c18 0 34 8 42 22"
-				fill="none"
-				stroke="var(--brand-strong)"
-				stroke-linecap="round"
-				stroke-width="5"
+
+			<rect
+				x="204"
+				y="50"
+				width="90"
+				height="90"
+				fill="var(--surface)"
+				stroke="var(--line)"
+				rx="2"
 			/>
+			<rect x="218" y="70" width="62" height="15" fill="var(--marker)" />
+			<rect x="220" y="76" width="58" height="5" fill="var(--ink)" />
+			<rect x="218" y="102" width="50" height="15" fill="var(--marker)" />
+			<rect x="220" y="108" width="46" height="5" fill="var(--ink)" />
 		</svg>
 	{/if}
 </div>

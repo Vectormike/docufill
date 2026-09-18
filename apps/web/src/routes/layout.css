@@ -118,11 +118,6 @@
 	--motion-base: 240ms;
 	--motion-slow: 520ms;
 }
-	--ease-out-premium: cubic-bezier(0.16, 1, 0.3, 1);
-	--motion-fast: 140ms;
-	--motion-base: 240ms;
-	--motion-slow: 520ms;
-}
 
 * {
 	box-sizing: border-box;

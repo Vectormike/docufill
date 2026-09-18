@@ -4,7 +4,6 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import ConnectivityBanner from '$lib/components/ConnectivityBanner.svelte';
-	import UpdatePrompt from '$lib/components/UpdatePrompt.svelte';
 
 	let { children } = $props();
 </script>
@@ -14,5 +13,5 @@
 	<title>Docufill — Fill forms once</title>
 </svelte:head>
 <ConnectivityBanner />
-<UpdatePrompt />
 {@render children()}
+

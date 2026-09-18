@@ -117,6 +117,12 @@
 	--motion-fast: 140ms;
 	--motion-base: 240ms;
 	--motion-slow: 520ms;
+
+	/* Dark card system */
+	--card-dark: #0a0a0a;
+	--card-dark-ink: #fafafa;
+	--card-dark-muted: #a1a1aa;
+	--card-dark-line: #27272a;
 }
 
 * {
@@ -297,6 +303,89 @@ textarea:focus-visible {
 	to {
 		background-position-x: -220%;
 	}
+}
+
+/* ── Dark Card Surface ─────────────────── */
+.surface-dark {
+	border: 1px solid var(--card-dark-line);
+	border-radius: var(--radius-card);
+	background: var(--card-dark);
+	color: var(--card-dark-ink);
+}
+
+.surface-dark h3,
+.surface-dark h4,
+.surface-dark strong {
+	color: var(--card-dark-ink);
+}
+
+.surface-dark p,
+.surface-dark span.muted {
+	color: var(--card-dark-muted);
+}
+
+/* ── Yellow Section ─────────────────────── */
+.section-yellow {
+	background: var(--brand);
+	color: var(--ink);
+}
+
+/* ── Drop Zone ──────────────────────────── */
+.drop-zone {
+	border: 2px dashed var(--line);
+	border-radius: var(--radius-card);
+	background: var(--surface);
+	transition: border-color var(--motion-base) ease, background var(--motion-base) ease;
+	cursor: pointer;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-active {
+	border-color: var(--brand-strong);
+	background: var(--brand-soft);
+}
+
+/* ── Video Frame ────────────────────────── */
+.video-frame {
+	border-radius: var(--radius-card);
+	overflow: hidden;
+	background: var(--card-dark);
+	box-shadow: 0 25px 60px rgb(0 0 0 / 18%), 0 8px 24px rgb(0 0 0 / 10%);
+}
+
+.video-frame video {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+/* ── Number Badge ───────────────────────── */
+.step-number {
+	display: grid;
+	place-items: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 9999px;
+	background: var(--brand);
+	color: var(--ink);
+	font-weight: 900;
+	font-size: 0.875rem;
+	flex-shrink: 0;
+}
+
+/* ── Progress Bar ───────────────────────── */
+.progress-track {
+	height: 6px;
+	border-radius: 3px;
+	background: rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+}
+
+.progress-fill {
+	height: 100%;
+	border-radius: 3px;
+	background: var(--ink);
+	transition: width 0.6s var(--ease-out-premium);
 }
 
 @media (prefers-reduced-motion: reduce) {

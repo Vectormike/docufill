@@ -1,8 +1,72 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 
+/* Custom Fonts */
+/* Primary Font: Rebond Grotesque */
+@font-face {
+	font-family: 'RebondGrotesque';
+	src: url('/fonts/RebondGrotesque/RebondGrotesque-Regular.woff2') format('woff2'),
+	     url('/fonts/RebondGrotesque/RebondGrotesque-Regular.otf') format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'RebondGrotesque';
+	src: url('/fonts/RebondGrotesque/RebondGrotesque-Medium.woff2') format('woff2'),
+	     url('/fonts/RebondGrotesque/RebondGrotesque-Medium.otf') format('opentype');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'RebondGrotesque';
+	src: url('/fonts/RebondGrotesque/RebondGrotesque-Bold.woff2') format('woff2'),
+	     url('/fonts/RebondGrotesque/RebondGrotesque-Bold.otf') format('opentype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* Secondary Font: Lock Serif Stencil */
+@font-face {
+	font-family: 'LockSerifStencil';
+	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Regular.otf') format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'LockSerifStencil';
+	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Medium.otf') format('opentype');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'LockSerifStencil';
+	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Bold.otf') format('opentype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'LockSerifStencil';
+	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Black.otf') format('opentype');
+	font-weight: 900;
+	font-style: normal;
+	font-display: swap;
+}
+
 @theme inline {
-	--font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-sans: 'Host Grotesk', 'Space Grotesk', 'Bricolage Grotesque', 'RebondGrotesque', ui-sans-serif, system-ui, sans-serif;
+	--font-display: 'LockSerifStencil', Georgia, serif;
+	--font-serif: 'LockSerifStencil', Georgia, serif;
 	--color-canvas: var(--canvas);
 	--color-surface: var(--surface);
 	--color-surface-raised: var(--surface-raised);
@@ -15,29 +79,29 @@
 	--color-positive: var(--positive);
 	--color-negative: var(--negative);
 	--color-warning: var(--warning);
-	--radius-card: 0.75rem;
+	--radius-card: 0.85rem;
 	--radius-control: 0.5rem;
 	--shadow-card: var(--card-shadow);
 	--font-weight-semibold: 550;
-	--font-weight-bold: 600;
-	--font-weight-extrabold: 700;
+	--font-weight-bold: 700;
+	--font-weight-extrabold: 900;
 }
 
 :root {
 	color-scheme: light;
-	--canvas: oklch(0.984 0.003 90);
-	--surface: oklch(1 0 0);
-	--surface-raised: oklch(1 0 0);
-	--ink: oklch(0.24 0.008 80);
-	--ink-muted: oklch(0.52 0.012 80);
-	--line: oklch(0.915 0.005 90);
-	--brand: oklch(0.84 0.155 84);
-	--brand-strong: oklch(0.47 0.105 72);
-	--brand-soft: oklch(0.965 0.035 92);
-	--positive: oklch(0.5 0.1 155);
-	--negative: oklch(0.52 0.17 27);
-	--warning: oklch(0.52 0.1 65);
-	--card-shadow: 0 1px 2px rgb(24 20 12 / 4%);
+	--canvas: #ffffff;
+	--surface: #ffffff;
+	--surface-raised: #f4f4f5;
+	--ink: #09090b;
+	--ink-muted: #52525b;
+	--line: #e4e4e7;
+	--brand: #facc15;
+	--brand-strong: #eab308;
+	--brand-soft: rgba(250, 204, 21, 0.15);
+	--positive: #16a34a;
+	--negative: #dc2626;
+	--warning: #d97706;
+	--card-shadow: 0 4px 20px rgb(0 0 0 / 4%);
 	--ease-out-premium: cubic-bezier(0.16, 1, 0.3, 1);
 	--motion-fast: 140ms;
 	--motion-base: 240ms;
@@ -91,6 +155,10 @@ textarea:focus-visible {
 ::selection {
 	background: var(--brand);
 	color: oklch(0.19 0.02 75);
+}
+
+.font-display {
+	font-family: var(--font-display);
 }
 
 .surface {

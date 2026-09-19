@@ -20,6 +20,7 @@
 	import ParticipantManager from '$lib/components/ParticipantManager.svelte';
 	import PdfAdjuster from '$lib/components/PdfAdjuster.svelte';
 	import QuestionLine from '$lib/components/QuestionLine.svelte';
+	import { describeFailure } from '$lib/documents';
 	import { isExtraPartyLabel } from '$lib/fields';
 
 	type Mode = 'summary' | 'questions' | 'review' | 'preview' | 'adjust';
@@ -61,6 +62,7 @@
 			)
 		)
 	);
+	const failure = $derived(describeFailure(detail?.error_code));
 	const memoryCandidates = $derived(
 		(detail?.fields ?? []).filter(
 			(field) =>
@@ -375,13 +377,12 @@
 		{:else if detail.status === 'failed'}
 			<section class="surface mt-8 p-8 text-center">
 				<FileWarning size={32} class="mx-auto text-negative" />
-				<h2 class="mt-4 text-2xl font-extrabold text-ink">This PDF needs attention</h2>
+				<h2 class="mt-4 text-2xl font-extrabold text-ink">{failure.title}</h2>
 				<p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-ink-muted">
-					It may be encrypted, image-only, malformed, oversized, or require a PDF feature not
-					supported in this release.
+					{failure.detail}
 				</p>
 				<div class="mt-6 flex flex-wrap justify-center gap-3">
-					{#if detail.fields.length}
+					{#if failure.retryable && detail.fields.length}
 						<Button onclick={generatePreview} loading={previewing}>Retry PDF preview</Button>
 					{/if}
 					<a

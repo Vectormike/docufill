@@ -61,7 +61,7 @@ pub async fn list_documents(
     user: AuthUser,
 ) -> AppResult<Json<Vec<DocumentSummary>>> {
     let documents = sqlx::query_as::<_, DocumentSummary>(
-        "select id, subject, original_name, status::text as status, page_count,
+        "select id, subject, original_name, status::text as status, error_code, page_count,
                 progress, memory_consent, completed_at, created_at, updated_at
          from public.documents
          where owner_id = $1
@@ -93,7 +93,7 @@ pub async fn create_document(
         "insert into public.documents (
             owner_id, subject, original_name, original_storage_path, content_hash
          ) values ($1, $2, $3, $4, $5)
-         returning id, subject, original_name, status::text as status, page_count,
+         returning id, subject, original_name, status::text as status, error_code, page_count,
                    progress, memory_consent, completed_at, created_at, updated_at",
     )
     .bind(user.id)
@@ -166,12 +166,6 @@ pub async fn delete_document(
     .into_iter()
     .collect::<HashSet<_>>();
     document_paths.insert(original_path);
-    for path in document_paths {
-        state
-            .storage
-            .delete(&state.config.documents_bucket, &path)
-            .await?;
-    }
     let context_paths = sqlx::query_scalar::<_, String>(
         "select storage_path from public.document_contexts
          where document_id = $1 and owner_id = $2 and storage_path is not null",
@@ -180,12 +174,6 @@ pub async fn delete_document(
     .bind(user.id)
     .fetch_all(&state.pool)
     .await?;
-    for path in context_paths {
-        state
-            .storage
-            .delete(&state.config.context_bucket, &path)
-            .await?;
-    }
 
     let mut transaction = state.pool.begin().await?;
     sqlx::query(
@@ -214,6 +202,22 @@ pub async fn delete_document(
     .execute(&mut *transaction)
     .await?;
     transaction.commit().await?;
+
+    // Purge the files only once the rows are gone. Deleting them first leaves a
+    // document pointing at objects that no longer exist whenever the commit
+    // fails, and every later render of that document reports a corrupt PDF.
+    for path in document_paths {
+        state
+            .storage
+            .delete(&state.config.documents_bucket, &path)
+            .await?;
+    }
+    for path in context_paths {
+        state
+            .storage
+            .delete(&state.config.context_bucket, &path)
+            .await?;
+    }
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
@@ -665,7 +669,7 @@ async fn owned_document(
     document_id: Uuid,
 ) -> AppResult<DocumentSummary> {
     sqlx::query_as::<_, DocumentSummary>(
-        "select id, subject, original_name, status::text as status, page_count,
+        "select id, subject, original_name, status::text as status, error_code, page_count,
                 progress, memory_consent, completed_at, created_at, updated_at
          from public.documents where id = $1 and owner_id = $2",
     )

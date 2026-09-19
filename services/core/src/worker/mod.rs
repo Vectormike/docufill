@@ -124,7 +124,10 @@ impl Worker {
 
     async fn fail_job(&self, job: &ProcessingJob, error: &AppError) -> AppResult<()> {
         let retryable = job.attempts < 3
-            && !matches!(error, AppError::Validation(_) | AppError::Configuration(_));
+            && !matches!(
+                error,
+                AppError::Validation(_) | AppError::Configuration(_) | AppError::NotFound
+            );
         let status = if retryable { "queued" } else { "failed" };
         let run_after_seconds = i32::from(job.attempts.max(1)) * 30;
         let error_code = error_code(error);
@@ -169,6 +172,7 @@ fn error_code(error: &AppError) -> &'static str {
         AppError::Validation(_) => "invalid_document",
         AppError::Configuration(_) => "service_not_configured",
         AppError::Upstream => "upstream_unavailable",
+        AppError::NotFound => "document_missing",
         _ => "processing_failed",
     }
 }
@@ -184,6 +188,12 @@ fn next_failure_backoff(current: Duration) -> Duration {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_missing_original_is_reported_as_such() {
+        assert_eq!(error_code(&AppError::NotFound), "document_missing");
+        assert_eq!(error_code(&AppError::Upstream), "upstream_unavailable");
+    }
 
     #[test]
     fn worker_failure_backoff_is_capped() {

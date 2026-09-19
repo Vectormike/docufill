@@ -19,6 +19,19 @@ struct SignedUrlResponse {
     signed_url: String,
 }
 
+#[derive(Default, Deserialize)]
+struct StorageErrorBody {
+    #[serde(rename = "statusCode")]
+    status_code: Option<String>,
+    code: Option<String>,
+}
+
+impl StorageErrorBody {
+    fn reports_a_missing_object(&self) -> bool {
+        self.status_code.as_deref() == Some("404") || self.code.as_deref() == Some("NoSuchKey")
+    }
+}
+
 impl StorageService {
     pub fn new(config: &Config) -> AppResult<Self> {
         let client = reqwest::Client::builder()
@@ -92,11 +105,8 @@ impl StorageService {
             .await
             .map_err(|_| AppError::Upstream)?;
 
-        if response.status() == reqwest::StatusCode::NOT_FOUND {
-            return Err(AppError::NotFound);
-        }
         if !response.status().is_success() {
-            return Err(AppError::Upstream);
+            return Err(object_error(response).await);
         }
         Ok(response
             .bytes()
@@ -122,7 +132,7 @@ impl StorageService {
             .map_err(|_| AppError::Upstream)?;
 
         if !response.status().is_success() {
-            return Err(AppError::Upstream);
+            return Err(object_error(response).await);
         }
         let signed: SignedUrlResponse = response.json().await.map_err(|_| AppError::Upstream)?;
         absolute_url(&self.base_url, &signed.signed_url)
@@ -162,6 +172,25 @@ impl StorageService {
     }
 }
 
+/// Supabase Storage reports a deleted object as HTTP 400 with the real 404 in
+/// the body, so the status line alone cannot tell a missing file apart from an
+/// upstream fault. Treating the two alike makes the worker retry a file that is
+/// never coming back.
+async fn object_error(response: reqwest::Response) -> AppError {
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return AppError::NotFound;
+    }
+    let body = response
+        .json::<StorageErrorBody>()
+        .await
+        .unwrap_or_default();
+    if body.reports_a_missing_object() {
+        AppError::NotFound
+    } else {
+        AppError::Upstream
+    }
+}
+
 /// Supabase returns signed URLs relative to the storage API root, so they must be
 /// resolved against that root rather than the project origin.
 fn absolute_url(base: &Url, signed_url: &str) -> AppResult<String> {
@@ -173,6 +202,26 @@ fn absolute_url(base: &Url, signed_url: &str) -> AppResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_400_carrying_a_404_body_is_a_missing_object() {
+        let body: StorageErrorBody = serde_json::from_str(
+            r#"{"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}"#,
+        )
+        .unwrap();
+
+        assert!(body.reports_a_missing_object());
+    }
+
+    #[test]
+    fn other_storage_failures_stay_upstream() {
+        let body: StorageErrorBody = serde_json::from_str(
+            r#"{"statusCode":"500","error":"internal","message":"boom","code":"InternalError"}"#,
+        )
+        .unwrap();
+
+        assert!(!body.reports_a_missing_object());
+    }
 
     #[test]
     fn signed_urls_keep_the_storage_api_prefix() {

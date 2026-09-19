@@ -322,6 +322,9 @@
 						"type": "string",
 						"format": "date-time"
 					},
+					"error_code": {
+						"type": ["string", "null"]
+					},
 					"id": {
 						"type": "string",
 						"format": "uuid"

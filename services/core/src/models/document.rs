@@ -10,6 +10,7 @@ pub struct DocumentSummary {
     pub subject: String,
     pub original_name: String,
     pub status: String,
+    pub error_code: Option<String>,
     pub page_count: Option<i32>,
     pub progress: i16,
     pub memory_consent: bool,

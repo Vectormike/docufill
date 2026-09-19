@@ -106,6 +106,7 @@ export interface components {
 			completed_at?: string | null;
 			/** Format: date-time */
 			created_at: string;
+			error_code?: string | null;
 			/** Format: uuid */
 			id: string;
 			memory_consent: boolean;

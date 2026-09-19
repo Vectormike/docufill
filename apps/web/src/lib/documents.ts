@@ -43,6 +43,39 @@ export async function uploadDocument(
 	}
 }
 
+export function describeFailure(errorCode: string | null | undefined) {
+	switch (errorCode) {
+		case 'document_missing':
+			return {
+				title: 'The original file is no longer stored',
+				detail:
+					'Your answers are safe, but the uploaded PDF itself is gone, so it cannot be filled or previewed. Upload the form again to continue.',
+				retryable: false
+			};
+		case 'service_not_configured':
+			return {
+				title: 'Document processing is unavailable',
+				detail:
+					'This is a problem on our side, not with your PDF. Please try again shortly — nothing you entered has been lost.',
+				retryable: true
+			};
+		case 'upstream_unavailable':
+			return {
+				title: 'Processing was interrupted',
+				detail:
+					'A service we depend on did not respond. Your PDF looks fine, so retrying usually works.',
+				retryable: true
+			};
+		default:
+			return {
+				title: 'This PDF needs attention',
+				detail:
+					'It may be encrypted, image-only, malformed, oversized, or require a PDF feature not supported in this release.',
+				retryable: true
+			};
+	}
+}
+
 export function subjectFromFilename(filename: string) {
 	const cleaned = filename
 		.replace(/\.pdf$/i, '')

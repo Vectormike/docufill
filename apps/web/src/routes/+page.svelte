@@ -4,20 +4,16 @@
 		CheckCircle2,
 		ChevronDown,
 		Upload,
-		FileText,
 		Sparkles,
 		LockKeyhole,
 		ShieldCheck,
 		FileCheck,
-		UserCheck,
 		Briefcase,
 		GraduationCap,
 		Building2,
 		Zap,
 		X,
-		UserPlus,
 		Mail,
-		KeyRound,
 		EyeOff
 	} from '@lucide/svelte';
 	import { goto } from '$app/navigation';
@@ -69,7 +65,7 @@
 		},
 		{
 			q: 'What document formats are supported?',
-			a: 'Docufill native engine handles digital PDF documents up to 25MB and 100 pages. It automatically detects AcroForm interactive fields as well as flat text field locations. Scans and image-only PDFs are not supported.'
+			a: 'Docufill handles digital PDF documents up to 25MB and 100 pages. It detects AcroForm fields, flat text blanks, and printed scans of forms. Handwritten-only pages may still need a review.'
 		},
 		{
 			q: 'Does Docufill read my Gmail inbox?',
@@ -79,10 +75,25 @@
 
 	// Sample trial data for scripted demo
 	const sampleResults = [
-		{ label: 'Applicant Full Name', value: 'Chinedu Okonkwo', source: 'Gmail Profile', filled: true },
-		{ label: 'Email Address', value: 'chinedu.okonkwo@gmail.com', source: 'Gmail Profile', filled: true },
+		{
+			label: 'Applicant Full Name',
+			value: 'Chinedu Okonkwo',
+			source: 'Gmail Profile',
+			filled: true
+		},
+		{
+			label: 'Email Address',
+			value: 'chinedu.okonkwo@gmail.com',
+			source: 'Gmail Profile',
+			filled: true
+		},
 		{ label: 'Phone Number', value: '+234 802 345 6789', source: 'Tenancy Pack', filled: true },
-		{ label: 'Current Address', value: '14 Admiralty Way, Lekki Phase 1, Lagos', source: 'Tenancy Pack', filled: true },
+		{
+			label: 'Current Address',
+			value: '14 Admiralty Way, Lekki Phase 1, Lagos',
+			source: 'Tenancy Pack',
+			filled: true
+		},
 		{ label: 'Monthly Income', value: '₦1,850,000', source: 'Tenancy Pack', filled: true },
 		{ label: 'Guarantor Name', value: '', source: 'Sent to Adaeze — email + link', filled: false },
 		{ label: 'Next of Kin', value: '', source: 'Needs you', filled: false }
@@ -91,6 +102,21 @@
 	const HEADLINE =
 		'FILL FORMS ONCE AND NEVER FILL AGAIN. EVERY FORM TAKES LESS TIME THAN THE PREVIOUS. NEVER TYPE THE SAME FACT TWICE.';
 	const headlineWords = HEADLINE.split(' ');
+	const WORD_HIGHLIGHT = '#FACC15';
+	const COMPOUNDING_FILL = [30, 75, 95];
+
+	/**
+	 * The headline words and the progress bars only reach their readable state
+	 * through a tween, so skipping the animations means applying that state
+	 * directly. Everything else animates with `from`, so its resting DOM state
+	 * is already the finished one.
+	 */
+	function settleWithoutMotion() {
+		compoundingProgress = [...COMPOUNDING_FILL];
+		scrollSectionEl?.querySelectorAll<HTMLElement>('.aboutSection__word').forEach((word) => {
+			word.style.color = WORD_HIGHLIGHT;
+		});
+	}
 
 	onMount(() => {
 		if (isSupabaseConfigured()) {
@@ -99,6 +125,11 @@
 					signedIn = Boolean(session);
 				})
 				.catch(() => null);
+		}
+
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			settleWithoutMotion();
+			return;
 		}
 
 		const ctx = gsap.context(() => {
@@ -150,7 +181,7 @@
 					tl.to(
 						word,
 						{
-							color: '#FACC15',
+							color: WORD_HIGHLIGHT,
 							duration: 0.3
 						},
 						i * 0.3
@@ -171,9 +202,9 @@
 								);
 
 								// Animate progress bars
-								setTimeout(() => (compoundingProgress[0] = 30), 200);
-								setTimeout(() => (compoundingProgress[1] = 75), 500);
-								setTimeout(() => (compoundingProgress[2] = 95), 800);
+								setTimeout(() => (compoundingProgress[0] = COMPOUNDING_FILL[0]), 200);
+								setTimeout(() => (compoundingProgress[1] = COMPOUNDING_FILL[1]), 500);
+								setTimeout(() => (compoundingProgress[2] = COMPOUNDING_FILL[2]), 800);
 
 								observer.unobserve(entry.target);
 							}
@@ -323,21 +354,47 @@
 	/>
 </svelte:head>
 
-<div class="min-h-screen bg-white text-ink font-sans overflow-x-hidden selection:bg-brand selection:text-black">
+<div
+	class="min-h-screen overflow-x-hidden bg-white font-sans text-ink selection:bg-brand selection:text-black"
+>
 	<!-- ═══════════════ NAVIGATION ═══════════════ -->
-	<header class="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur-2xl transition-all">
+	<header
+		class="sticky top-0 z-50 border-b border-line bg-white/90 backdrop-blur-2xl transition-all"
+	>
 		<div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-			<a href={resolve('/')} class="flex items-center gap-3 group" aria-label="Docufill Home">
+			<a href={resolve('/')} class="group flex items-center gap-3" aria-label="Docufill Home">
 				<BrandMark size="sm" />
 			</a>
 
 			<!-- Center Links -->
-			<nav class="hidden md:flex items-center gap-1 rounded-full border border-line bg-surface-raised px-4 py-1.5 text-sm font-bold">
-				<a href="#how-it-works" class="rounded-full px-4 py-1.5 text-ink-muted transition hover:text-ink hover:bg-white">How it Works</a>
-				<a href="#invite-section" class="rounded-full px-4 py-1.5 text-ink-muted transition hover:text-ink hover:bg-white">Invites</a>
-				<a href="#try-it" class="rounded-full px-4 py-1.5 text-ink-muted transition hover:text-ink hover:bg-white">Try It</a>
-				<a href="#security" class="rounded-full px-4 py-1.5 text-ink-muted transition hover:text-ink hover:bg-white">Security</a>
-				<a href="#faq" class="rounded-full px-4 py-1.5 text-ink-muted transition hover:text-ink hover:bg-white">FAQ</a>
+			<nav
+				class="hidden items-center gap-1 rounded-full border border-line bg-surface-raised px-4 py-1.5 text-sm font-bold md:flex"
+			>
+				<a
+					href="#how-it-works"
+					class="rounded-full px-4 py-1.5 text-ink-muted transition hover:bg-white hover:text-ink"
+					>How it Works</a
+				>
+				<a
+					href="#invite-section"
+					class="rounded-full px-4 py-1.5 text-ink-muted transition hover:bg-white hover:text-ink"
+					>Invites</a
+				>
+				<a
+					href="#try-it"
+					class="rounded-full px-4 py-1.5 text-ink-muted transition hover:bg-white hover:text-ink"
+					>Try It</a
+				>
+				<a
+					href="#security"
+					class="rounded-full px-4 py-1.5 text-ink-muted transition hover:bg-white hover:text-ink"
+					>Security</a
+				>
+				<a
+					href="#faq"
+					class="rounded-full px-4 py-1.5 text-ink-muted transition hover:bg-white hover:text-ink"
+					>FAQ</a
+				>
 			</nav>
 
 			<!-- Right Auth -->
@@ -354,13 +411,25 @@
 						type="button"
 						onclick={handleGoogleSignIn}
 						disabled={loading}
-						class="inline-flex min-h-11 items-center gap-2.5 rounded-full bg-ink px-5 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-zinc-800 active:scale-98 cursor-pointer"
+						class="inline-flex min-h-11 cursor-pointer items-center gap-2.5 rounded-full bg-ink px-5 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-zinc-800 active:scale-98"
 					>
 						<svg class="size-4.5" viewBox="0 0 24 24">
-							<path fill="#facc15" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-							<path fill="#facc15" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-							<path fill="#facc15" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-							<path fill="#facc15" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+							<path
+								fill="#facc15"
+								d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+							/>
+							<path
+								fill="#facc15"
+								d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+							/>
+							<path
+								fill="#facc15"
+								d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+							/>
+							<path
+								fill="#facc15"
+								d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+							/>
 						</svg>
 						<span>Sign in with Google</span>
 					</button>
@@ -370,26 +439,37 @@
 	</header>
 
 	<!-- ═══════════════ REWORKED HERO (CENTRALIZED TEXT, NO MOCKUP) ═══════════════ -->
-	<section class="relative mx-auto max-w-5xl px-5 pt-20 pb-24 text-center sm:px-8 lg:pt-28 lg:pb-32">
+	<section
+		class="relative mx-auto max-w-5xl px-5 pt-20 pb-24 text-center sm:px-8 lg:pt-28 lg:pb-32"
+	>
 		<!-- Subtle background radial glow -->
-		<div class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[32rem] rounded-full bg-brand/20 blur-3xl"></div>
+		<div
+			class="pointer-events-none absolute top-1/2 left-1/2 size-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/20 blur-3xl"
+		></div>
 
 		<div id="hero-content" class="relative z-10 flex flex-col items-center">
 			<!-- Centered Badge -->
-			<div class="mb-6 inline-flex items-center gap-2 rounded-full border border-brand/40 bg-brand-soft px-4.5 py-1.5 text-xs font-black tracking-widest text-ink uppercase shadow-xs">
+			<div
+				class="mb-6 inline-flex items-center gap-2 rounded-full border border-brand/40 bg-brand-soft px-4.5 py-1.5 text-xs font-black tracking-widest text-ink uppercase shadow-xs"
+			>
 				<Sparkles size={14} class="text-ink" />
 				Privacy-First Document Agent
 			</div>
 
 			<!-- Centered Main Headline with Accent Typography -->
-			<h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-ink leading-[1.06] max-w-4xl text-balance">
+			<h1
+				class="max-w-4xl text-4xl leading-[1.06] font-extrabold tracking-tight text-balance text-ink sm:text-6xl lg:text-7xl"
+			>
 				Fill forms once. <br />
-				<span class="font-display italic font-normal text-ink-muted">Never fill them again.</span>
+				<span class="font-display font-normal text-ink-muted italic">Never fill them again.</span>
 			</h1>
 
 			<!-- Centered Subtitle -->
-			<p class="mt-7 max-w-2xl text-lg sm:text-xl leading-relaxed text-ink-muted font-medium text-balance">
-				Start from your Gmail profile. Upload any PDF form, and Docufill maps your confirmed details from your encrypted vault. Every next form takes less time.
+			<p
+				class="mt-7 max-w-2xl text-lg leading-relaxed font-medium text-balance text-ink-muted sm:text-xl"
+			>
+				Start from your Gmail profile. Upload any PDF form, and Docufill maps your confirmed details
+				from your encrypted vault. Every next form takes less time.
 			</p>
 
 			<!-- Centered Action Buttons (Rounded-Full) -->
@@ -399,13 +479,25 @@
 						type="button"
 						onclick={handleGoogleSignIn}
 						disabled={loading}
-						class="inline-flex min-h-13 items-center gap-3 rounded-full bg-brand px-8 py-3.5 text-base font-extrabold text-black shadow-md transition hover:bg-brand-strong active:scale-98 cursor-pointer"
+						class="inline-flex min-h-13 cursor-pointer items-center gap-3 rounded-full bg-brand px-8 py-3.5 text-base font-extrabold text-black shadow-md transition hover:bg-brand-strong active:scale-98"
 					>
 						<svg class="size-5" viewBox="0 0 24 24">
-							<path fill="#000000" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-							<path fill="#000000" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-							<path fill="#000000" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-							<path fill="#000000" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+							<path
+								fill="#000000"
+								d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+							/>
+							<path
+								fill="#000000"
+								d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+							/>
+							<path
+								fill="#000000"
+								d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+							/>
+							<path
+								fill="#000000"
+								d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+							/>
 						</svg>
 						<span>Start Free with Google</span>
 						<ArrowRight size={18} />
@@ -430,7 +522,9 @@
 			</div>
 
 			<!-- Centered Trust Badges Bar -->
-			<div class="mt-14 flex flex-wrap items-center justify-center gap-8 border-t border-line pt-8 text-xs font-bold text-ink-muted">
+			<div
+				class="mt-14 flex flex-wrap items-center justify-center gap-8 border-t border-line pt-8 text-xs font-bold text-ink-muted"
+			>
 				<span class="flex items-center gap-2">
 					<LockKeyhole size={15} class="text-positive" /> AES-256-GCM Encrypted
 				</span>
@@ -445,43 +539,54 @@
 	</section>
 
 	<!-- ═══════════════ HOW IT WORKS (3-STEP BLACK CARDS) ═══════════════ -->
-	<section id="how-it-works" class="lazy-reveal py-24 bg-white border-t border-line">
+	<section id="how-it-works" class="lazy-reveal border-t border-line bg-white py-24">
 		<div class="mx-auto max-w-7xl px-5 sm:px-8">
-			<div class="text-center max-w-3xl mx-auto mb-16">
+			<div class="mx-auto mb-16 max-w-3xl text-center">
 				<p class="eyebrow mb-3">How It Works</p>
-				<h2 class="text-3xl sm:text-5xl font-extrabold text-ink tracking-tight">
-					Three steps. <span class="font-display italic font-normal text-ink-muted">Zero retyping.</span>
+				<h2 class="text-3xl font-extrabold tracking-tight text-ink sm:text-5xl">
+					Three steps. <span class="font-display font-normal text-ink-muted italic"
+						>Zero retyping.</span
+					>
 				</h2>
-				<p class="mt-4 text-base sm:text-lg text-ink-muted font-medium">
+				<p class="mt-4 text-base font-medium text-ink-muted sm:text-lg">
 					Connect your Google profile, upload a form, and let Docufill fill what it already knows.
 				</p>
 			</div>
 
 			<div class="grid gap-6 md:grid-cols-3">
 				<!-- Step 1 -->
-				<div class="surface-dark p-8 transition-all duration-300 hover:scale-[1.02] hover:border-brand-strong">
+				<div
+					class="surface-dark p-8 transition-all duration-300 hover:scale-[1.02] hover:border-brand-strong"
+				>
 					<div class="step-number mb-6">1</div>
-					<h3 class="text-xl font-extrabold mb-3">Connect Gmail</h3>
+					<h3 class="mb-3 text-xl font-extrabold">Connect Gmail</h3>
 					<p class="text-sm leading-relaxed" style="color: var(--card-dark-muted)">
-						Sign in with Google. Your name, email, and photo seed the first form immediately. We never read your inbox.
+						Sign in with Google. Your name, email, and photo seed the first form immediately. We
+						never read your inbox.
 					</p>
 				</div>
 
 				<!-- Step 2 -->
-				<div class="surface-dark p-8 transition-all duration-300 hover:scale-[1.02] hover:border-brand-strong">
+				<div
+					class="surface-dark p-8 transition-all duration-300 hover:scale-[1.02] hover:border-brand-strong"
+				>
 					<div class="step-number mb-6">2</div>
-					<h3 class="text-xl font-extrabold mb-3">Upload Your PDF</h3>
+					<h3 class="mb-3 text-xl font-extrabold">Upload Your PDF</h3>
 					<p class="text-sm leading-relaxed" style="color: var(--card-dark-muted)">
-						Drop any digital PDF form. The Copilot maps fields, matches your confirmed details, and flags what's missing.
+						Drop any digital PDF form. The Copilot maps fields, matches your confirmed details, and
+						flags what's missing.
 					</p>
 				</div>
 
 				<!-- Step 3 -->
-				<div class="surface-dark p-8 transition-all duration-300 hover:scale-[1.02] hover:border-brand-strong">
+				<div
+					class="surface-dark p-8 transition-all duration-300 hover:scale-[1.02] hover:border-brand-strong"
+				>
 					<div class="step-number mb-6">3</div>
-					<h3 class="text-xl font-extrabold mb-3">Review & Sign</h3>
+					<h3 class="mb-3 text-xl font-extrabold">Review & Sign</h3>
 					<p class="text-sm leading-relaxed" style="color: var(--card-dark-muted)">
-						Only fill what Docufill doesn't know. Invite a guarantor by email. Preview, sign, download.
+						Only fill what Docufill doesn't know. Invite a guarantor by email. Preview, sign,
+						download.
 					</p>
 				</div>
 			</div>
@@ -489,93 +594,122 @@
 	</section>
 
 	<!-- ═══════════════ NEW PARTICIPANT / INVITE SECTION (MATCHING IMAGE 1) ═══════════════ -->
-	<section id="invite-section" class="lazy-reveal py-24 bg-[#FAF7F2] border-t border-b border-[#E5E0D8]">
+	<section
+		id="invite-section"
+		class="lazy-reveal border-t border-b border-[#E5E0D8] bg-[#FAF7F2] py-24"
+	>
 		<div class="mx-auto max-w-7xl px-5 sm:px-8">
-			<div class="text-center max-w-3xl mx-auto mb-16">
+			<div class="mx-auto mb-16 max-w-3xl text-center">
 				<p class="eyebrow mb-3">No Account Required</p>
-				<h2 class="text-3xl sm:text-5xl font-extrabold text-ink tracking-tight">
-					Invite guarantors to <span class="font-display italic font-normal text-ink-muted">fill their part.</span>
+				<h2 class="text-3xl font-extrabold tracking-tight text-ink sm:text-5xl">
+					Invite guarantors to <span class="font-display font-normal text-ink-muted italic"
+						>fill their part.</span
+					>
 				</h2>
-				<p class="mt-4 text-base sm:text-lg text-ink-muted font-medium">
-					Tenancy and employment forms often need someone else. Send a private link — they answer only their fields without making an account.
+				<p class="mt-4 text-base font-medium text-ink-muted sm:text-lg">
+					Tenancy and employment forms often need someone else. Send a private link — they answer
+					only their fields without making an account.
 				</p>
 			</div>
 
 			<!-- Split 2-Column Card (Matching Image 1 exact structure & styling) -->
-			<div class="mx-auto max-w-6xl overflow-hidden rounded-2xl border border-[#D8D3C9] bg-white shadow-xl grid lg:grid-cols-2">
+			<div
+				class="mx-auto grid max-w-6xl overflow-hidden rounded-2xl border border-[#D8D3C9] bg-white shadow-xl lg:grid-cols-2"
+			>
 				<!-- Left Column: Private Link Explanation -->
-				<div class="p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-[#FAF8F5]">
-					<span class="text-xs font-mono font-semibold uppercase tracking-widest text-ink-muted mb-3">
+				<div class="flex flex-col justify-center bg-[#FAF8F5] p-8 sm:p-12 lg:p-16">
+					<span
+						class="mb-3 font-mono text-xs font-semibold tracking-widest text-ink-muted uppercase"
+					>
 						Adaeze's private link
 					</span>
-					<h3 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink leading-tight">
+					<h3 class="text-3xl leading-tight font-extrabold tracking-tight text-ink sm:text-4xl">
 						She only sees her section of this document.
 					</h3>
-					<p class="mt-6 text-base sm:text-lg text-ink-muted leading-relaxed">
-						The rest of the page is hidden. She answers name, relationship, and phone. Those three lines write onto the same PDF.
+					<p class="mt-6 text-base leading-relaxed text-ink-muted sm:text-lg">
+						The rest of the page is hidden. She answers name, relationship, and phone. Those three
+						lines write onto the same PDF.
 					</p>
 
 					<!-- Highlighted Line Pill (Matching Image 1) -->
 					<div class="mt-8">
-						<mark class="mark inline-block font-mono text-sm sm:text-base font-bold text-ink rounded px-2.5 py-1">
+						<mark
+							class="mark inline-block rounded px-2.5 py-1 font-mono text-sm font-bold text-ink sm:text-base"
+						>
 							Adaeze Okonkwo · Sister · +234 809 441 2201
 						</mark>
 					</div>
 
 					<div class="mt-10 flex items-center gap-3 text-xs font-bold text-ink-muted">
-						<span class="flex items-center gap-1.5"><Mail size={15} class="text-ink" /> Verified via Email OTP</span>
+						<span class="flex items-center gap-1.5"
+							><Mail size={15} class="text-ink" /> Verified via Email OTP</span
+						>
 						<span>•</span>
-						<span class="flex items-center gap-1.5"><EyeOff size={15} class="text-ink" /> Rest of PDF is hidden</span>
+						<span class="flex items-center gap-1.5"
+							><EyeOff size={15} class="text-ink" /> Rest of PDF is hidden</span
+						>
 					</div>
 				</div>
 
 				<!-- Right Column: Document Preview (Matching Image 1 right panel) -->
-				<div class="p-8 sm:p-12 lg:p-14 bg-[#D8D3C9] flex items-center justify-center border-t lg:border-t-0 lg:border-l border-[#C8C2B5]">
+				<div
+					class="flex items-center justify-center border-t border-[#C8C2B5] bg-[#D8D3C9] p-8 sm:p-12 lg:border-t-0 lg:border-l lg:p-14"
+				>
 					<!-- White Paper Card -->
-					<div class="w-full max-w-md bg-white rounded-md shadow-[0_12px_35px_rgba(0,0,0,0.18)] border border-zinc-200 overflow-hidden font-sans">
+					<div
+						class="w-full max-w-md overflow-hidden rounded-md border border-zinc-200 bg-white font-sans shadow-[0_12px_35px_rgba(0,0,0,0.18)]"
+					>
 						<!-- Paper Header -->
-						<div class="p-6 border-b border-zinc-200">
-							<span class="text-[10px] font-mono font-bold tracking-widest uppercase text-zinc-400 block mb-1">
+						<div class="border-b border-zinc-200 p-6">
+							<span
+								class="mb-1 block font-mono text-[10px] font-bold tracking-widest text-ink-muted uppercase"
+							>
 								GUARANTOR SECTION ONLY
 							</span>
-							<h4 class="font-serif text-lg font-bold text-zinc-900 leading-tight">
+							<h4 class="font-serif text-lg leading-tight font-bold text-zinc-900">
 								Residential Tenancy Application
 							</h4>
-							<p class="text-xs text-zinc-500 mt-0.5 font-sans">14 Admiralty Way, Lekki Phase 1, Lagos</p>
+							<p class="mt-0.5 font-sans text-xs text-ink-muted">
+								14 Admiralty Way, Lekki Phase 1, Lagos
+							</p>
 						</div>
 
 						<!-- Section 1: APPLICANT (Gray Header) -->
-						<div class="bg-zinc-200 px-6 py-1.5 text-[11px] font-mono font-bold tracking-wider text-zinc-600 uppercase">
+						<div
+							class="bg-zinc-200 px-6 py-1.5 font-mono text-[11px] font-bold tracking-wider text-zinc-600 uppercase"
+						>
 							APPLICANT
 						</div>
-						<div class="p-6 space-y-2.5 text-xs text-zinc-400">
+						<div class="space-y-2.5 p-6 text-xs text-ink-muted">
 							<div class="flex justify-between">
 								<span>Full legal name</span>
-								<span class="text-zinc-500">Chinedu Okonkwo</span>
+								<span class="text-ink">Chinedu Okonkwo</span>
 							</div>
 							<div class="flex justify-between border-t border-zinc-100 pt-2">
 								<span>Email</span>
-								<span class="text-zinc-500">chinedu@bujeti.com</span>
+								<span class="text-ink">chinedu@bujeti.com</span>
 							</div>
 							<div class="flex justify-between border-t border-zinc-100 pt-2">
 								<span>Phone</span>
-								<span class="text-zinc-500">+234 803 555 0142</span>
+								<span class="text-ink">+234 803 555 0142</span>
 							</div>
 							<div class="flex justify-between border-t border-zinc-100 pt-2">
 								<span>Current employer</span>
-								<span class="text-zinc-500">Bujeti Limited</span>
+								<span class="text-ink">Bujeti Limited</span>
 							</div>
 							<div class="flex justify-between border-t border-zinc-100 pt-2">
 								<span>Monthly rent</span>
-								<span class="text-zinc-500">₦2,400,000</span>
+								<span class="text-ink">₦2,400,000</span>
 							</div>
 						</div>
 
 						<!-- Section 2: GUARANTOR (Yellow Header & Highlighted Rows) -->
-						<div class="bg-[#FEF08A] px-6 py-1.5 text-[11px] font-mono font-bold tracking-wider text-zinc-800 uppercase border-t border-yellow-300">
+						<div
+							class="border-t border-yellow-300 bg-[#FEF08A] px-6 py-1.5 font-mono text-[11px] font-bold tracking-wider text-zinc-800 uppercase"
+						>
 							GUARANTOR
 						</div>
-						<div class="bg-[#FEF9C3] p-6 space-y-2.5 text-xs text-zinc-900 font-medium">
+						<div class="space-y-2.5 bg-[#FEF9C3] p-6 text-xs font-medium text-zinc-900">
 							<div class="flex justify-between">
 								<span class="font-bold">Full name</span>
 								<span class="font-extrabold text-black">Adaeze Okonkwo</span>
@@ -599,14 +733,23 @@
 	<section
 		bind:this={scrollSectionEl}
 		id="about"
-		class="aboutSection relative min-h-screen bg-black text-white flex items-center justify-center py-24 px-6 sm:px-12 md:px-16 overflow-hidden"
+		class="aboutSection relative flex min-h-screen items-center justify-center overflow-hidden bg-black px-6 py-24 text-white sm:px-12 md:px-16"
 	>
-		<div class="aboutSection__inner max-w-6xl w-full mx-auto text-left">
-			<p class="aboutSection__label text-xs font-black tracking-widest uppercase text-yellow-400/80 mb-6 sm:mb-8">THE PLATFORM</p>
+		<div class="aboutSection__inner mx-auto w-full max-w-6xl text-left">
+			<p
+				class="aboutSection__label mb-6 text-xs font-black tracking-widest text-yellow-400/80 uppercase sm:mb-8"
+			>
+				THE PLATFORM
+			</p>
 
-			<h2 class="aboutSection__heading font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5.25rem] font-bold uppercase tracking-tight leading-[1.18] sm:leading-[1.1] text-balance">
-				{#each headlineWords as word, i}
-					<span class="aboutSection__word inline-block text-white/20 transition-colors duration-200">{word}</span>{' '}
+			<h2
+				class="aboutSection__heading font-display text-3xl leading-[1.18] font-bold tracking-tight text-balance uppercase sm:text-5xl sm:leading-[1.1] md:text-6xl lg:text-7xl xl:text-[5.25rem]"
+			>
+				{#each headlineWords as word, index (index)}
+					<span
+						class="aboutSection__word mr-[0.25em] inline-block text-white/20 transition-colors duration-200"
+						>{word}</span
+					>
 				{/each}
 			</h2>
 		</div>
@@ -615,59 +758,90 @@
 	<!-- ═══════════════ COMPOUNDING MEMORY (IT GETS FASTER — GSAP FADE & HOVER) ═══════════════ -->
 	<section bind:this={compoundingSectionEl} class="section-yellow py-24">
 		<div class="mx-auto max-w-7xl px-5 sm:px-8">
-			<div class="text-center max-w-3xl mx-auto mb-16">
-				<p class="text-xs font-black tracking-widest uppercase text-ink/60 mb-3">Compounding Memory</p>
-				<h2 class="text-3xl sm:text-5xl font-extrabold text-ink tracking-tight">
-					It gets faster <span class="font-display italic font-normal text-ink/80">every time.</span>
+			<div class="mx-auto mb-16 max-w-3xl text-center">
+				<p class="mb-3 text-xs font-black tracking-widest text-ink/60 uppercase">
+					Compounding Memory
+				</p>
+				<h2 class="text-3xl font-extrabold tracking-tight text-ink sm:text-5xl">
+					It gets faster <span class="font-display font-normal text-ink/80 italic">every time.</span
+					>
 				</h2>
-				<p class="mt-4 text-base sm:text-lg text-ink/70 font-medium max-w-2xl mx-auto">
-					The first form still has gaps. Each confirmed answer is kept. By the third form, you mostly review and sign.
+				<p class="mx-auto mt-4 max-w-2xl text-base font-medium text-ink/70 sm:text-lg">
+					The first form still has gaps. Each confirmed answer is kept. By the third form, you
+					mostly review and sign.
 				</p>
 			</div>
 
 			<div class="grid gap-6 md:grid-cols-3">
 				<!-- Form 1 Card -->
-				<div class="compounding-card surface-dark p-8 relative overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:border-brand-strong hover:shadow-2xl">
-					<div class="flex items-center justify-between mb-6">
-						<span class="text-xs font-black tracking-widest uppercase" style="color: var(--brand)">Form 1</span>
-						<span class="rounded-full bg-brand px-3 py-1 text-xs font-bold text-black">30% filled</span>
+				<div
+					class="compounding-card surface-dark relative overflow-hidden p-8 transition-all duration-300 hover:scale-[1.03] hover:border-brand-strong hover:shadow-2xl"
+				>
+					<div class="mb-6 flex items-center justify-between">
+						<span class="text-xs font-black tracking-widest uppercase" style="color: var(--brand)"
+							>Form 1</span
+						>
+						<span class="rounded-full bg-brand px-3 py-1 text-xs font-bold text-black"
+							>30% filled</span
+						>
 					</div>
-					<h3 class="text-lg font-extrabold mb-3">First tenancy form</h3>
-					<p class="text-sm leading-relaxed mb-6" style="color: var(--card-dark-muted)">
+					<h3 class="mb-3 text-lg font-extrabold">First tenancy form</h3>
+					<p class="mb-6 text-sm leading-relaxed" style="color: var(--card-dark-muted)">
 						Gmail fills name & email. You add address, landlord details, next of kin manually.
 					</p>
 					<div class="progress-track" style="background: rgba(255,255,255,0.12)">
-						<div class="progress-fill" style="width: {compoundingProgress[0]}%; background: var(--brand); transition: width 1s ease-out;"></div>
+						<div
+							class="progress-fill"
+							style="width: {compoundingProgress[0]}%; background: var(--brand); transition: width 1s ease-out;"
+						></div>
 					</div>
 				</div>
 
 				<!-- Form 2 Card -->
-				<div class="compounding-card surface-dark p-8 relative overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:border-brand-strong hover:shadow-2xl">
-					<div class="flex items-center justify-between mb-6">
-						<span class="text-xs font-black tracking-widest uppercase" style="color: var(--brand)">Form 2</span>
-						<span class="rounded-full bg-brand px-3 py-1 text-xs font-bold text-black">75% filled</span>
+				<div
+					class="compounding-card surface-dark relative overflow-hidden p-8 transition-all duration-300 hover:scale-[1.03] hover:border-brand-strong hover:shadow-2xl"
+				>
+					<div class="mb-6 flex items-center justify-between">
+						<span class="text-xs font-black tracking-widest uppercase" style="color: var(--brand)"
+							>Form 2</span
+						>
+						<span class="rounded-full bg-brand px-3 py-1 text-xs font-bold text-black"
+							>75% filled</span
+						>
 					</div>
-					<h3 class="text-lg font-extrabold mb-3">Second tenancy form</h3>
-					<p class="text-sm leading-relaxed mb-6" style="color: var(--card-dark-muted)">
+					<h3 class="mb-3 text-lg font-extrabold">Second tenancy form</h3>
+					<p class="mb-6 text-sm leading-relaxed" style="color: var(--card-dark-muted)">
 						Those answers return automatically. You only handle what's new to this landlord.
 					</p>
 					<div class="progress-track" style="background: rgba(255,255,255,0.12)">
-						<div class="progress-fill" style="width: {compoundingProgress[1]}%; background: var(--brand); transition: width 1s ease-out;"></div>
+						<div
+							class="progress-fill"
+							style="width: {compoundingProgress[1]}%; background: var(--brand); transition: width 1s ease-out;"
+						></div>
 					</div>
 				</div>
 
 				<!-- Form 3 Card -->
-				<div class="compounding-card surface-dark p-8 relative overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:border-brand-strong hover:shadow-2xl">
-					<div class="flex items-center justify-between mb-6">
-						<span class="text-xs font-black tracking-widest uppercase" style="color: var(--brand)">Form 3</span>
-						<span class="rounded-full bg-brand px-3 py-1 text-xs font-bold text-black">95% filled</span>
+				<div
+					class="compounding-card surface-dark relative overflow-hidden p-8 transition-all duration-300 hover:scale-[1.03] hover:border-brand-strong hover:shadow-2xl"
+				>
+					<div class="mb-6 flex items-center justify-between">
+						<span class="text-xs font-black tracking-widest uppercase" style="color: var(--brand)"
+							>Form 3</span
+						>
+						<span class="rounded-full bg-brand px-3 py-1 text-xs font-bold text-black"
+							>95% filled</span
+						>
 					</div>
-					<h3 class="text-lg font-extrabold mb-3">Third form onwards</h3>
-					<p class="text-sm leading-relaxed mb-6" style="color: var(--card-dark-muted)">
+					<h3 class="mb-3 text-lg font-extrabold">Third form onwards</h3>
+					<p class="mb-6 text-sm leading-relaxed" style="color: var(--card-dark-muted)">
 						You mostly review and sign. Almost everything comes from your confirmed pack.
 					</p>
 					<div class="progress-track" style="background: rgba(255,255,255,0.12)">
-						<div class="progress-fill" style="width: {compoundingProgress[2]}%; background: var(--brand); transition: width 1s ease-out;"></div>
+						<div
+							class="progress-fill"
+							style="width: {compoundingProgress[2]}%; background: var(--brand); transition: width 1s ease-out;"
+						></div>
 					</div>
 				</div>
 			</div>
@@ -675,20 +849,23 @@
 	</section>
 
 	<!-- ═══════════════ TRY DOCUFILL — UPLOAD TRIAL ═══════════════ -->
-	<section id="try-it" class="lazy-reveal py-24 bg-white">
+	<section id="try-it" class="lazy-reveal bg-white py-24">
 		<div class="mx-auto max-w-4xl px-5 sm:px-8">
-			<div class="text-center max-w-3xl mx-auto mb-14">
+			<div class="mx-auto mb-14 max-w-3xl text-center">
 				<p class="eyebrow mb-3">Try Docufill</p>
-				<h2 class="text-3xl sm:text-5xl font-extrabold text-ink tracking-tight">
-					Upload a PDF and <span class="font-display italic font-normal text-ink-muted">see it fill.</span>
+				<h2 class="text-3xl font-extrabold tracking-tight text-ink sm:text-5xl">
+					Upload a PDF and <span class="font-display font-normal text-ink-muted italic"
+						>see it fill.</span
+					>
 				</h2>
-				<p class="mt-4 text-base sm:text-lg text-ink-muted font-medium">
-					No account needed. Drop a form below or pick a sample. The demo uses a synthetic Gmail profile.
+				<p class="mt-4 text-base font-medium text-ink-muted sm:text-lg">
+					No account needed. Drop a form below or pick a sample. The demo uses a synthetic Gmail
+					profile.
 				</p>
 			</div>
 
 			<!-- Trial Card -->
-			<div class="surface overflow-hidden border border-line shadow-card bg-white">
+			<div class="surface overflow-hidden border border-line bg-white shadow-card">
 				{#if trialStep === 'idle'}
 					<!-- Drop Zone -->
 					<div
@@ -699,7 +876,10 @@
 						ondragleave={handleDragLeave}
 						ondrop={handleDrop}
 						onclick={() => document.getElementById('file-input')?.click()}
-						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') document.getElementById('file-input')?.click(); }}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ')
+								document.getElementById('file-input')?.click();
+						}}
 					>
 						<input
 							id="file-input"
@@ -708,36 +888,42 @@
 							class="hidden"
 							onchange={handleFileInput}
 						/>
-						<div class="grid size-16 place-items-center rounded-full bg-ink text-brand mx-auto mb-5">
+						<div
+							class="mx-auto mb-5 grid size-16 place-items-center rounded-full bg-ink text-brand"
+						>
 							<Upload size={28} />
 						</div>
-						<p class="text-lg font-bold text-ink mb-2">Drop your PDF here, or click to browse</p>
+						<p class="mb-2 text-lg font-bold text-ink">Drop your PDF here, or click to browse</p>
 						<p class="text-sm text-ink-muted">PDF only · 25 MB max · Digital forms only</p>
-						<p class="text-xs text-ink-muted/60 mt-2">Scans and image-only PDFs are not supported</p>
+						<p class="mt-2 text-xs text-ink-muted">
+							Printed scans are supported · handwriting may need review
+						</p>
 					</div>
 
 					<!-- Sample Files -->
 					<div class="px-6 pb-6">
-						<p class="text-xs font-bold text-ink-muted uppercase tracking-wider mb-3">Or try a sample</p>
+						<p class="mb-3 text-xs font-bold tracking-wider text-ink-muted uppercase">
+							Or try a sample
+						</p>
 						<div class="flex flex-wrap gap-3">
 							<button
 								type="button"
 								onclick={() => startSampleTrial('Tenancy_Application')}
-								class="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-zinc-800 cursor-pointer"
+								class="inline-flex cursor-pointer items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-zinc-800"
 							>
 								<Building2 size={16} class="text-brand" /> Tenancy Application
 							</button>
 							<button
 								type="button"
 								onclick={() => startSampleTrial('Employment_Onboarding')}
-								class="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-zinc-800 cursor-pointer"
+								class="inline-flex cursor-pointer items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-zinc-800"
 							>
 								<Briefcase size={16} class="text-brand" /> Employment Onboarding
 							</button>
 							<button
 								type="button"
 								onclick={() => startSampleTrial('School_Admission')}
-								class="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-zinc-800 cursor-pointer"
+								class="inline-flex cursor-pointer items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white transition hover:bg-zinc-800"
 							>
 								<GraduationCap size={16} class="text-brand" /> School Admission
 							</button>
@@ -747,20 +933,25 @@
 					<!-- Legal -->
 					<div class="border-t border-line px-6 py-4">
 						<p class="text-xs text-ink-muted">
-							Demo files and the sample Gmail profile are synthetic. Don't upload wills, court papers, or anything that needs a regulated signature.
-							<a href={resolve('/acceptable-use')} class="underline hover:text-ink">Acceptable Use</a> ·
+							Demo files and the sample Gmail profile are synthetic. Don't upload wills, court
+							papers, or anything that needs a regulated signature.
+							<a href={resolve('/acceptable-use')} class="underline hover:text-ink"
+								>Acceptable Use</a
+							>
+							·
 							<a href={resolve('/privacy')} class="underline hover:text-ink">Privacy</a>
 						</p>
 					</div>
-
 				{:else if trialStep === 'processing'}
 					<!-- Processing State -->
 					<div class="p-10 text-center">
-						<div class="grid size-16 place-items-center rounded-full bg-brand mx-auto mb-6 animate-pulse">
+						<div
+							class="mx-auto mb-6 grid size-16 animate-pulse place-items-center rounded-full bg-brand"
+						>
 							<Zap size={28} class="text-black" />
 						</div>
-						<h3 class="text-xl font-extrabold text-ink mb-2">{uploadedFile?.name}</h3>
-						<p class="text-sm text-ink-muted mb-6">
+						<h3 class="mb-2 text-xl font-extrabold text-ink">{uploadedFile?.name}</h3>
+						<p class="mb-6 text-sm text-ink-muted">
 							{#if trialProgress < 20}
 								Checking PDF…
 							{:else if trialProgress < 40}
@@ -773,20 +964,21 @@
 								Grounding from your pack…
 							{/if}
 						</p>
-						<div class="max-w-md mx-auto">
+						<div class="mx-auto max-w-md">
 							<div class="progress-track">
 								<div class="progress-fill" style="width: {trialProgress}%"></div>
 							</div>
 							<p class="mt-3 text-xs font-bold text-ink-muted">{trialProgress}%</p>
 						</div>
 					</div>
-
 				{:else if trialStep === 'result'}
 					<!-- Result State -->
 					<div class="p-6 sm:p-8">
-						<div class="flex items-center justify-between border-b border-line pb-4 mb-6">
+						<div class="mb-6 flex items-center justify-between border-b border-line pb-4">
 							<div class="flex items-center gap-3">
-								<div class="grid size-11 place-items-center rounded-control bg-ink text-brand font-black text-sm">
+								<div
+									class="grid size-11 place-items-center rounded-control bg-ink text-sm font-black text-brand"
+								>
 									PDF
 								</div>
 								<div>
@@ -797,7 +989,7 @@
 							<button
 								type="button"
 								onclick={resetTrial}
-								class="grid size-8 place-items-center rounded-full hover:bg-surface-raised transition cursor-pointer"
+								class="grid size-8 cursor-pointer place-items-center rounded-full transition hover:bg-surface-raised"
 								aria-label="Close result"
 							>
 								<X size={18} class="text-ink-muted" />
@@ -805,29 +997,42 @@
 						</div>
 
 						<!-- Copilot Strip -->
-						<div class="rounded-control bg-ink text-white p-4 mb-6 flex items-center gap-3">
-							<Sparkles size={18} class="text-brand shrink-0" />
+						<div class="mb-6 flex items-center gap-3 rounded-control bg-ink p-4 text-white">
+							<Sparkles size={18} class="shrink-0 text-brand" />
 							<p class="text-sm font-medium">
-								I found <strong class="text-brand">7 fields</strong> · 2 from Gmail · 3 from your tenancy pack · 1 needs you · 1 sent to guarantor
+								I found <strong class="text-brand">7 fields</strong> · 2 from Gmail · 3 from your tenancy
+								pack · 1 needs you · 1 sent to guarantor
 							</p>
 						</div>
 
 						<!-- Result Fields Grid -->
 						<div class="grid gap-3 sm:grid-cols-2">
-							{#each sampleResults as field}
-								<div class="result-field rounded-control border p-4 transition {field.filled ? 'border-line bg-surface-raised hover:border-brand-strong' : 'border-brand-strong/40 bg-brand-soft'}">
-									<div class="flex items-center justify-between text-xs text-ink-muted mb-1.5">
+							{#each sampleResults as field (field.label)}
+								<div
+									class="result-field rounded-control border p-4 transition {field.filled
+										? 'border-line bg-surface-raised hover:border-brand-strong'
+										: 'border-brand-strong/40 bg-brand-soft'}"
+								>
+									<div class="mb-1.5 flex items-center justify-between text-xs text-ink-muted">
 										<span class="font-bold">{field.label}</span>
 										{#if field.filled}
-											<span class="text-positive font-bold flex items-center gap-1"><CheckCircle2 size={13} /> {field.source}</span>
+											<span class="flex items-center gap-1 font-bold text-positive"
+												><CheckCircle2 size={13} /> {field.source}</span
+											>
 										{:else}
-											<span class="rounded bg-brand/30 px-2 py-0.5 text-[10px] text-ink font-bold">{field.source}</span>
+											<span class="rounded bg-brand/30 px-2 py-0.5 text-[10px] font-bold text-ink"
+												>{field.source}</span
+											>
 										{/if}
 									</div>
 									{#if field.filled}
 										<p class="text-base font-bold text-ink">{field.value}</p>
 									{:else}
-										<p class="text-sm text-ink-muted italic">{field.source === 'Needs you' ? 'Waiting for your input' : 'Assigned via email + private link'}</p>
+										<p class="text-sm text-ink-muted italic">
+											{field.source === 'Needs you'
+												? 'Waiting for your input'
+												: 'Assigned via email + private link'}
+										</p>
 									{/if}
 								</div>
 							{/each}
@@ -835,21 +1040,37 @@
 
 						<!-- Conversion CTA -->
 						<div class="mt-8 rounded-control border border-line bg-surface-raised p-6 text-center">
-							<p class="text-sm text-ink-muted mb-4">
-								This demo used a sample Gmail profile. <strong class="text-ink">Continue with Google</strong> to fill from <em>your</em> name and email, keep a tenancy pack, and invite a guarantor by email.
+							<p class="mb-4 text-sm text-ink-muted">
+								This demo used a sample Gmail profile. <strong class="text-ink"
+									>Continue with Google</strong
+								>
+								to fill from <em>your</em> name and email, keep a tenancy pack, and invite a guarantor
+								by email.
 							</p>
 							{#if !signedIn}
 								<button
 									type="button"
 									onclick={handleGoogleSignIn}
 									disabled={loading}
-									class="inline-flex min-h-12 items-center gap-3 rounded-full bg-brand px-7 py-3 text-sm font-extrabold text-black transition hover:bg-brand-strong active:scale-98 cursor-pointer"
+									class="inline-flex min-h-12 cursor-pointer items-center gap-3 rounded-full bg-brand px-7 py-3 text-sm font-extrabold text-black transition hover:bg-brand-strong active:scale-98"
 								>
 									<svg class="size-4.5" viewBox="0 0 24 24">
-										<path fill="#000" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-										<path fill="#000" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-										<path fill="#000" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-										<path fill="#000" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+										<path
+											fill="#000"
+											d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+										/>
+										<path
+											fill="#000"
+											d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+										/>
+										<path
+											fill="#000"
+											d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+										/>
+										<path
+											fill="#000"
+											d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+										/>
 									</svg>
 									Continue with Google
 									<ArrowRight size={16} />
@@ -871,34 +1092,44 @@
 	</section>
 
 	<!-- ═══════════════ REWORKED PRIVACY SECTION (BANNER LOOKING CARD) ═══════════════ -->
-	<section id="security" class="lazy-reveal py-24 bg-white border-t border-line">
+	<section id="security" class="lazy-reveal border-t border-line bg-white py-24">
 		<div class="mx-auto max-w-6xl px-5 sm:px-8">
 			<!-- Banner Card -->
-			<div class="relative overflow-hidden rounded-3xl bg-zinc-950 p-8 sm:p-14 border border-zinc-800 shadow-2xl text-white">
+			<div
+				class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 p-8 text-white shadow-2xl sm:p-14"
+			>
 				<!-- Decorative background glow -->
-				<div class="pointer-events-none absolute -top-24 -right-24 size-80 rounded-full bg-brand/15 blur-3xl"></div>
+				<div
+					class="pointer-events-none absolute -top-24 -right-24 size-80 rounded-full bg-brand/15 blur-3xl"
+				></div>
 
-				<div class="relative z-10 max-w-3xl mb-12">
-					<div class="inline-flex items-center gap-2 rounded-full bg-brand/20 border border-brand/30 px-4 py-1 text-xs font-mono font-bold uppercase tracking-widest text-brand mb-4">
+				<div class="relative z-10 mb-12 max-w-3xl">
+					<div
+						class="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/20 px-4 py-1 font-mono text-xs font-bold tracking-widest text-brand uppercase"
+					>
 						<LockKeyhole size={14} /> Zero-Trust Architecture
 					</div>
-					<h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white">
-						Your privacy is <span class="font-display italic font-normal text-brand">non-negotiable.</span>
+					<h2 class="text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
+						Your privacy is <span class="font-display font-normal text-brand italic"
+							>non-negotiable.</span
+						>
 					</h2>
-					<p class="mt-4 text-base sm:text-lg text-zinc-400 font-medium">
-						We built Docufill from day one so your data stays encrypted, private, and strictly in your control.
+					<p class="mt-4 text-base font-medium text-zinc-400 sm:text-lg">
+						We built Docufill from day one so your data stays encrypted, private, and strictly in
+						your control.
 					</p>
 				</div>
 
 				<!-- 4 Banner Grid Columns inside the card -->
-				<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 border-t border-zinc-800/80 pt-10">
+				<div class="grid gap-6 border-t border-zinc-800/80 pt-10 sm:grid-cols-2 lg:grid-cols-4">
 					<div class="space-y-3">
 						<div class="grid size-10 place-items-center rounded-lg bg-brand text-black">
 							<LockKeyhole size={20} />
 						</div>
 						<h3 class="text-base font-bold text-white">AES-256 Encryption</h3>
 						<p class="text-xs leading-relaxed text-zinc-400">
-							Facts, answers, and document excerpts are encrypted with unique random nonces before saving.
+							Facts, answers, and document excerpts are encrypted with unique random nonces before
+							saving.
 						</p>
 					</div>
 
@@ -908,7 +1139,8 @@
 						</div>
 						<h3 class="text-base font-bold text-white">Zero Model Training</h3>
 						<p class="text-xs leading-relaxed text-zinc-400">
-							Customer data is never used to train public AI models. AI receives minimal grounded facts per question.
+							Customer data is never used to train public AI models. AI receives minimal grounded
+							facts per question.
 						</p>
 					</div>
 
@@ -918,7 +1150,8 @@
 						</div>
 						<h3 class="text-base font-bold text-white">No Inbox Access</h3>
 						<p class="text-xs leading-relaxed text-zinc-400">
-							Google sign-in seeds your profile name and photo. We never read or access your Gmail inbox.
+							Google sign-in seeds your profile name and photo. We never read or access your Gmail
+							inbox.
 						</p>
 					</div>
 
@@ -928,7 +1161,8 @@
 						</div>
 						<h3 class="text-base font-bold text-white">Instant Self-Deletion</h3>
 						<p class="text-xs leading-relaxed text-zinc-400">
-							Deleting a document or account immediately purges every original, preview, and vector chunk.
+							Deleting a document or account immediately purges every original, preview, and vector
+							chunk.
 						</p>
 					</div>
 				</div>
@@ -937,29 +1171,40 @@
 	</section>
 
 	<!-- ═══════════════ FAQ ═══════════════ -->
-	<section id="faq" class="lazy-reveal py-24 border-t border-line bg-white">
+	<section id="faq" class="lazy-reveal border-t border-line bg-white py-24">
 		<div class="mx-auto max-w-4xl px-5 sm:px-8">
-			<div class="text-center mb-14">
+			<div class="mb-14 text-center">
 				<p class="eyebrow mb-3">Questions & Answers</p>
-				<h2 class="text-3xl sm:text-5xl font-extrabold text-ink tracking-tight">
-					Frequently asked <span class="font-display italic font-normal text-ink-muted">questions.</span>
+				<h2 class="text-3xl font-extrabold tracking-tight text-ink sm:text-5xl">
+					Frequently asked <span class="font-display font-normal text-ink-muted italic"
+						>questions.</span
+					>
 				</h2>
 			</div>
 
 			<div class="space-y-4">
-				{#each faqs as faq, index}
-					<div class="surface-dark overflow-hidden transition rounded-2xl">
+				{#each faqs as faq, index (faq.q)}
+					<div class="surface-dark overflow-hidden rounded-2xl transition">
 						<button
 							type="button"
 							onclick={() => toggleFaq(index)}
-							class="flex w-full items-center justify-between p-6 text-left font-extrabold text-lg cursor-pointer"
+							class="flex w-full cursor-pointer items-center justify-between p-6 text-left text-lg font-extrabold"
 							style="color: var(--card-dark-ink)"
 						>
 							<span>{faq.q}</span>
-							<ChevronDown size={20} class="transition-transform duration-300 shrink-0 ml-4 {openFaq === index ? 'rotate-180 text-brand' : ''}" style="color: {openFaq === index ? 'var(--brand)' : 'var(--card-dark-muted)'}" />
+							<ChevronDown
+								size={20}
+								class="ml-4 shrink-0 transition-transform duration-300 {openFaq === index
+									? 'rotate-180 text-brand'
+									: ''}"
+								style="color: {openFaq === index ? 'var(--brand)' : 'var(--card-dark-muted)'}"
+							/>
 						</button>
 						{#if openFaq === index}
-							<div class="px-6 pb-6 text-sm leading-relaxed border-t pt-4 font-medium" style="color: var(--card-dark-muted); border-color: var(--card-dark-line)">
+							<div
+								class="border-t px-6 pt-4 pb-6 text-sm leading-relaxed font-medium"
+								style="color: var(--card-dark-muted); border-color: var(--card-dark-line)"
+							>
 								{faq.a}
 							</div>
 						{/if}
@@ -971,17 +1216,23 @@
 
 	<!-- ═══════════════ FINAL CTA — YELLOW ═══════════════ -->
 	<section class="lazy-reveal section-yellow py-24">
-		<div class="mx-auto max-w-5xl px-5 sm:px-8 text-center">
-			<h2 class="text-3xl sm:text-5xl font-extrabold text-ink tracking-tight">
-				Ready to simplify form filling <span class="font-display italic font-normal text-ink/80">forever?</span>
+		<div class="mx-auto max-w-5xl px-5 text-center sm:px-8">
+			<h2 class="text-3xl font-extrabold tracking-tight text-ink sm:text-5xl">
+				Ready to simplify form filling <span class="font-display font-normal text-ink/80 italic"
+					>forever?</span
+				>
 			</h2>
-			<p class="mt-4 text-base sm:text-lg text-ink/70 max-w-2xl mx-auto font-medium">
-				Sign in with Google to create your encrypted profile vault and fill your first document in seconds. We use your Google profile to start the form. We do not read your Gmail inbox.
+			<p class="mx-auto mt-4 max-w-2xl text-base font-medium text-ink/70 sm:text-lg">
+				Sign in with Google to create your encrypted profile vault and fill your first document in
+				seconds. We use your Google profile to start the form. We do not read your Gmail inbox.
 			</p>
 
-			<div class="mt-8 flex flex-col items-center justify-center gap-4 max-w-md mx-auto">
+			<div class="mx-auto mt-8 flex max-w-md flex-col items-center justify-center gap-4">
 				{#if signedIn}
-					<Button class="w-full text-base py-3 font-extrabold rounded-full" onclick={() => goto(resolve('/documents'))}>
+					<Button
+						class="w-full rounded-full py-3 text-base font-extrabold"
+						onclick={() => goto(resolve('/documents'))}
+					>
 						Continue to My Documents <ArrowRight size={18} />
 					</Button>
 				{:else}
@@ -989,22 +1240,37 @@
 						type="button"
 						onclick={handleGoogleSignIn}
 						disabled={loading}
-						class="w-full inline-flex min-h-13 items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-base font-extrabold text-white shadow-sm transition hover:bg-zinc-800 cursor-pointer"
+						class="inline-flex min-h-13 w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-ink px-6 py-3.5 text-base font-extrabold text-white shadow-sm transition hover:bg-zinc-800"
 					>
 						<svg class="size-5" viewBox="0 0 24 24">
-							<path fill="#facc15" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-							<path fill="#facc15" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-							<path fill="#facc15" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-							<path fill="#facc15" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+							<path
+								fill="#facc15"
+								d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+							/>
+							<path
+								fill="#facc15"
+								d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+							/>
+							<path
+								fill="#facc15"
+								d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+							/>
+							<path
+								fill="#facc15"
+								d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+							/>
 						</svg>
 						<span>Continue with Google</span>
 					</button>
 
-					<div class="my-1 flex w-full items-center gap-3 text-xs font-bold text-ink/50 uppercase tracking-wider">
-						<span class="h-px flex-1 bg-ink/20"></span> or email magic link <span class="h-px flex-1 bg-ink/20"></span>
+					<div
+						class="my-1 flex w-full items-center gap-3 text-xs font-bold tracking-wider text-ink/70 uppercase"
+					>
+						<span class="h-px flex-1 bg-ink/20"></span> or email magic link
+						<span class="h-px flex-1 bg-ink/20"></span>
 					</div>
 
-					<form onsubmit={handleEmailSignIn} class="w-full flex gap-2">
+					<form onsubmit={handleEmailSignIn} class="flex w-full gap-2">
 						<input
 							type="email"
 							required
@@ -1029,21 +1295,25 @@
 	</section>
 
 	<!-- ═══════════════ REFACTORED FOOTER (ROUNDED-FULL BUTTONS) ═══════════════ -->
-	<footer class="border-t border-line bg-zinc-950 text-white py-14">
-		<div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-5 sm:px-8 md:flex-row">
+	<footer class="border-t border-line bg-zinc-950 py-14 text-white">
+		<div
+			class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-5 sm:px-8 md:flex-row"
+		>
 			<div class="flex items-center gap-3">
 				<BrandMark size="sm" />
 			</div>
 
-			<div class="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-zinc-400">
-				<a href="#how-it-works" class="hover:text-white transition">How it Works</a>
-				<a href="#invite-section" class="hover:text-white transition">Invites</a>
-				<a href="#try-it" class="hover:text-white transition">Try It</a>
-				<a href={resolve('/privacy')} class="hover:text-white transition">Privacy Policy</a>
-				<a href={resolve('/acceptable-use')} class="hover:text-white transition">Acceptable Use</a>
+			<div
+				class="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-zinc-400"
+			>
+				<a href="#how-it-works" class="transition hover:text-white">How it Works</a>
+				<a href="#invite-section" class="transition hover:text-white">Invites</a>
+				<a href="#try-it" class="transition hover:text-white">Try It</a>
+				<a href={resolve('/privacy')} class="transition hover:text-white">Privacy Policy</a>
+				<a href={resolve('/acceptable-use')} class="transition hover:text-white">Acceptable Use</a>
 			</div>
 
-			<div class="text-xs text-zinc-500 font-mono">
+			<div class="font-mono text-xs text-zinc-400">
 				© {new Date().getFullYear()} Docufill Agent. All rights reserved.
 			</div>
 		</div>

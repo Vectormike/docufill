@@ -217,7 +217,8 @@
 					"alignment",
 					"source",
 					"source_reference_count",
-					"sort_order"
+					"sort_order",
+					"required"
 				],
 				"properties": {
 					"alignment": {
@@ -262,6 +263,9 @@
 					"participant_id": {
 						"type": ["string", "null"],
 						"format": "uuid"
+					},
+					"required": {
+						"type": "boolean"
 					},
 					"sort_order": {
 						"type": "integer",

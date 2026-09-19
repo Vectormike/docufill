@@ -49,9 +49,9 @@
 
 	<h2>Scanned and handwritten forms</h2>
 	<p>
-		Image-only scanned PDFs and handwriting recognition are not supported in this MVP. Printed OCR
-		is planned for a later release and will require explicit review. Password-protected, corrupted,
-		or unsupported PDFs are rejected.
+		Printed scans of forms are supported and still require your review before anything is completed.
+		Handwriting recognition is not supported in this MVP. Password-protected, corrupted, or
+		unsupported PDFs are rejected.
 	</p>
 
 	<h2>Signatures and authority</h2>

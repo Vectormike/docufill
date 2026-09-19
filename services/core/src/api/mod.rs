@@ -1,5 +1,5 @@
 mod account;
-mod documents;
+pub(crate) mod documents;
 mod health;
 mod participants;
 mod profile;
@@ -11,7 +11,7 @@ use axum::{
     routing::{delete, get, patch, post},
 };
 use tower_http::{
-    cors::CorsLayer,
+    cors::{AllowOrigin, CorsLayer},
     limit::RequestBodyLimitLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     trace::TraceLayer,
@@ -66,13 +66,18 @@ pub struct ApiDoc;
 
 pub fn router(state: AppState) -> AppResult<Router> {
     let request_id_header = HeaderName::from_static("x-request-id");
-    let origin = state
+    let origins = state
         .config
-        .web_origin
-        .parse::<HeaderValue>()
-        .map_err(|_| AppError::configuration("WEB_ORIGIN is invalid"))?;
+        .cors_origins()?
+        .into_iter()
+        .map(|origin| {
+            origin
+                .parse::<HeaderValue>()
+                .map_err(|_| AppError::configuration("WEB_ORIGIN is invalid"))
+        })
+        .collect::<AppResult<Vec<_>>>()?;
     let cors = CorsLayer::new()
-        .allow_origin(origin)
+        .allow_origin(AllowOrigin::list(origins))
         .allow_methods([
             Method::GET,
             Method::POST,

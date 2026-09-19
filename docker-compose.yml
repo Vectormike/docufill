@@ -93,6 +93,8 @@ services:
       - "443:443"
     environment:
       APP_DOMAIN: ${APP_DOMAIN:-:80}
+      WWW_DOMAIN: ${WWW_DOMAIN:-www.localhost}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost}
       ACME_EMAIL: ${ACME_EMAIL:-admin@localhost}
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro

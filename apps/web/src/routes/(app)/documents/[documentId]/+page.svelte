@@ -20,6 +20,7 @@
 	import ParticipantManager from '$lib/components/ParticipantManager.svelte';
 	import PdfAdjuster from '$lib/components/PdfAdjuster.svelte';
 	import QuestionLine from '$lib/components/QuestionLine.svelte';
+	import { isExtraPartyLabel } from '$lib/fields';
 
 	type Mode = 'summary' | 'questions' | 'review' | 'preview' | 'adjust';
 
@@ -49,9 +50,16 @@
 			.sort((left, right) => left.sort_order - right.sort_order)
 	);
 	const answerable = $derived(questions.filter((field) => !field.participant_id));
-	const remaining = $derived(answerable.filter((field) => !field.confirmed_at).length);
+	const remaining = $derived(
+		answerable.filter((field) => field.required !== false && !field.confirmed_at).length
+	);
 	const signatureRequired = $derived(
-		Boolean(detail?.fields.some((field) => !field.participant_id && field.kind === 'signature'))
+		Boolean(
+			detail?.fields.some(
+				(field) =>
+					!field.participant_id && field.kind === 'signature' && !isExtraPartyLabel(field.label)
+			)
+		)
 	);
 	const memoryCandidates = $derived(
 		(detail?.fields ?? []).filter(
@@ -124,8 +132,13 @@
 		return ordered.find((field) => !field.confirmed_at)?.id;
 	}
 
+	function nextFieldId(after = activeFieldId) {
+		const start = answerable.findIndex((field) => field.id === after);
+		return answerable[start + 1]?.id;
+	}
+
 	function advance() {
-		const next = nextGapId();
+		const next = nextFieldId();
 		if (next) activeFieldId = next;
 		else mode = 'review';
 	}
@@ -453,7 +466,11 @@
 							</h2>
 							<div class="mt-4 flex items-center gap-1" aria-hidden="true">
 								{#each answerable as field (field.id)}
-									<span class="h-[3px] w-3 {field.confirmed_at ? 'bg-ink' : 'bg-line'}"></span>
+									<span
+										class="h-[3px] w-3 {field.confirmed_at || field.required === false
+											? 'bg-ink'
+											: 'bg-line'}"
+									></span>
 								{/each}
 							</div>
 						</div>

@@ -155,8 +155,8 @@
 						</div>
 						<p class="mt-4 font-extrabold text-ink">Drop your PDF here</p>
 						<p class="mt-1 text-sm text-ink-muted">or tap to choose a file · maximum 25 MB</p>
-						<p class="mt-3 text-xs font-semibold text-warning">
-							Scans and image-only PDFs are not supported yet.
+						<p class="mt-3 text-xs font-semibold text-ink-muted">
+							Printed scans are supported. Handwritten-only pages may still need a review.
 						</p>
 					</div>
 				{/if}

@@ -27,8 +27,10 @@
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	const delegated = $derived(Boolean(field.participant_id));
+	const canSkip = $derived(!delegated && field.required === false);
 	const draft = $derived(field.source === 'ai_draft' && !field.confirmed_at);
 	const value = $derived(field.value ?? field.value_preview ?? '');
+	const typed = $derived(String(answer ?? '').trim());
 	const inputType = $derived(
 		field.kind === 'date'
 			? 'date'
@@ -36,9 +38,10 @@
 				? 'email'
 				: field.kind === 'phone'
 					? 'tel'
-					: field.kind === 'number'
-						? 'number'
-						: 'text'
+					: 'text'
+	);
+	const inputMode = $derived(
+		field.kind === 'number' || field.kind === 'phone' ? 'numeric' : undefined
 	);
 
 	$effect(() => {
@@ -47,19 +50,25 @@
 		saved = Boolean(field.confirmed_at);
 	});
 
-	function scheduleSave() {
+	function typedAnswer(value: unknown = answer) {
+		return String(value ?? '').trim();
+	}
+
+	function scheduleSave(next = answer) {
+		answer = String(next ?? '');
 		saved = false;
-		if (!answer.trim()) return;
+		if (!typedAnswer(answer)) return;
 		clearTimeout(timer);
 		timer = setTimeout(() => void save(), 700);
 	}
 
 	async function save() {
-		if (!answer.trim()) return;
+		const value = typedAnswer();
+		if (!value) return;
 		clearTimeout(timer);
 		saving = true;
 		try {
-			await onsave(answer.trim());
+			await onsave(value);
 			saved = true;
 		} finally {
 			saving = false;
@@ -67,7 +76,11 @@
 	}
 
 	async function saveAndContinue() {
-		if (answer.trim() && !saved) await save();
+		if (typedAnswer() && !saved) await save();
+		onnext();
+	}
+
+	function leaveBlank() {
 		onnext();
 	}
 </script>
@@ -84,6 +97,9 @@
 			<h2 class="ask text-lg leading-7 text-ink sm:text-xl">
 				<span class="mark">{field.label}</span>
 			</h2>
+			{#if canSkip}
+				<p class="mt-1 text-xs text-ink-muted">Optional — skip if it does not apply.</p>
+			{/if}
 			{#if field.instructions}
 				<p class="mt-2 text-xs leading-5 text-ink-muted">{field.instructions}</p>
 			{/if}
@@ -95,8 +111,7 @@
 							type="checkbox"
 							checked={['true', 'yes', 'checked'].includes(answer.toLowerCase())}
 							onchange={(event) => {
-								answer = event.currentTarget.checked ? 'yes' : 'no';
-								scheduleSave();
+								scheduleSave(event.currentTarget.checked ? 'yes' : 'no');
 							}}
 							class="rounded-sm border-line text-ink focus:ring-brand-strong"
 						/>
@@ -106,7 +121,7 @@
 					<textarea
 						rows="3"
 						bind:value={answer}
-						oninput={scheduleSave}
+						oninput={(event) => scheduleSave(event.currentTarget.value)}
 						disabled={draft && !editingDraft}
 						placeholder="Type your answer"
 						class="w-full resize-none rounded-none border-0 border-b-[1.5px] border-line bg-transparent px-0 py-1 text-base leading-7 text-ink focus:border-ink focus:ring-0 disabled:opacity-70"
@@ -114,8 +129,9 @@
 				{:else}
 					<input
 						type={inputType}
+						inputmode={inputMode}
 						bind:value={answer}
-						oninput={scheduleSave}
+						oninput={(event) => scheduleSave(event.currentTarget.value)}
 						onkeydown={(event) => {
 							if (event.key === 'Enter') {
 								event.preventDefault();
@@ -152,14 +168,30 @@
 					<button type="button" onclick={onreject} class="text-xs text-ink-muted hover:text-ink"
 						>Reject</button
 					>
+					{#if canSkip}
+						<button type="button" onclick={leaveBlank} class="text-xs text-ink-muted hover:text-ink"
+							>Leave blank</button
+						>
+					{/if}
 				{:else}
-					<button
-						type="button"
-						onclick={saveAndContinue}
-						disabled={!answer.trim()}
-						class="text-xs font-semibold text-ink underline decoration-brand decoration-[1.5px] underline-offset-4 disabled:no-underline disabled:opacity-45"
-						>Save and continue</button
-					>
+					{#if typed}
+						<button
+							type="button"
+							onclick={saveAndContinue}
+							class="text-xs font-semibold text-ink underline decoration-brand decoration-[1.5px] underline-offset-4"
+							>Save and continue</button
+						>
+					{/if}
+					{#if canSkip}
+						<button
+							type="button"
+							onclick={leaveBlank}
+							class="text-xs {typed
+								? 'text-ink-muted hover:text-ink'
+								: 'font-semibold text-ink underline decoration-brand decoration-[1.5px] underline-offset-4'}"
+							>Leave blank</button
+						>
+					{/if}
 				{/if}
 				<span class="gutter" aria-live="polite">
 					{saving ? 'saving' : saved ? 'saved' : answer ? 'autosaves' : ''}
@@ -179,7 +211,9 @@
 						? 'italic'
 						: ''}"
 				>
-					{delegated ? 'awaiting participant' : value || 'No answer yet'}
+					{delegated
+						? 'awaiting participant'
+						: value || (canSkip ? 'Optional · left blank' : 'No answer yet')}
 				</span>
 			{/snippet}
 

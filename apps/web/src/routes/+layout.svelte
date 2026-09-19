@@ -14,4 +14,3 @@
 </svelte:head>
 <ConnectivityBanner />
 {@render children()}
-

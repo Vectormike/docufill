@@ -49,6 +49,8 @@ pub struct DocumentField {
     pub source_reference_count: i32,
     pub confirmed_at: Option<DateTime<Utc>>,
     pub sort_order: i32,
+    #[sqlx(default)]
+    pub required: bool,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -79,7 +81,9 @@ impl CopilotSummary {
                 .count(),
             questions_needing_input: fields
                 .iter()
-                .filter(|field| field.source == "missing")
+                .filter(|field| {
+                    field.required && field.participant_id.is_none() && field.source == "missing"
+                })
                 .count(),
             ambiguous_fields: fields
                 .iter()

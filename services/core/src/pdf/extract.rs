@@ -18,6 +18,8 @@ pub struct ExtractedDocument {
     pub page_count: u16,
     pub fields: Vec<ExtractedField>,
     pub text_segments: Vec<TextSegment>,
+    #[serde(default)]
+    pub title: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,6 +122,7 @@ impl PdfEngine {
             page_count: page_count as u16,
             fields,
             text_segments,
+            title: None,
         })
     }
 
@@ -165,9 +168,53 @@ fn field_kind(kind: PdfFormFieldType) -> &'static str {
     }
 }
 
+pub fn infer_kind(label: &str) -> &'static str {
+    let normalized = label.to_ascii_lowercase();
+    if normalized.contains("date") || normalized.contains("born") {
+        "date"
+    } else if normalized.contains("email") {
+        "email"
+    } else if normalized.contains("phone")
+        || normalized.contains("mobile")
+        || normalized.contains("whatsapp")
+        || normalized.contains("whats app")
+    {
+        "phone"
+    } else if normalized.contains("address") {
+        "address"
+    } else if normalized.contains("tick")
+        || normalized.contains("check")
+        || normalized.contains("required?")
+        || matches!(
+            normalized.as_str(),
+            "male" | "female" | "sex male" | "sex female"
+        )
+    {
+        "checkbox"
+    } else if normalized.contains("signature")
+        || (normalized.contains("stamp") && !normalized.contains("required"))
+    {
+        "signature"
+    } else if normalized.contains("account number") || normalized.contains("account no") {
+        "number"
+    } else {
+        "text"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn infers_bank_field_kinds() {
+        assert_eq!(infer_kind("Account Number"), "number");
+        assert_eq!(infer_kind("Mobile / Phone No"), "phone");
+        assert_eq!(infer_kind("WhatsApp Number"), "phone");
+        assert_eq!(infer_kind("Male"), "checkbox");
+        assert_eq!(infer_kind("Specimen Signature"), "signature");
+        assert_eq!(infer_kind("Company stamp required?"), "checkbox");
+    }
 
     #[test]
     fn binding_twice_reuses_the_loaded_library() {
@@ -179,21 +226,38 @@ mod tests {
         assert!(engine.bind().is_ok());
         assert!(engine.bind().is_ok());
     }
-}
 
-pub(super) fn infer_kind(label: &str) -> &'static str {
-    let normalized = label.to_ascii_lowercase();
-    if normalized.contains("date") || normalized.contains("born") {
-        "date"
-    } else if normalized.contains("email") {
-        "email"
-    } else if normalized.contains("phone") || normalized.contains("mobile") {
-        "phone"
-    } else if normalized.contains("address") {
-        "address"
-    } else if normalized.contains("signature") {
-        "signature"
-    } else {
-        "text"
+    #[test]
+    fn labelled_ebanking_form_places_fields_beside_labels() {
+        let Ok(library_path) = std::env::var("PDFIUM_LIB_PATH") else {
+            return;
+        };
+        let Ok(bytes) = std::fs::read("/tmp/ebanking-original.pdf") else {
+            return;
+        };
+        let engine = PdfEngine::new(Some(PathBuf::from(library_path)), None, 25_000_000, 10);
+        let extracted = engine.extract(bytes).expect("extract");
+        let labels: Vec<_> = extracted
+            .fields
+            .iter()
+            .map(|field| field.label.as_str())
+            .collect();
+        assert!(labels.contains(&"First Name"));
+        assert!(labels.contains(&"Business Name"));
+        assert!(labels.contains(&"Certification Name"));
+        let title = extracted
+            .fields
+            .iter()
+            .find(|field| field.label == "Title")
+            .expect("title");
+        assert!(title.x > 150.0);
+        assert!(title.width < 420.0);
+        let first = extracted
+            .fields
+            .iter()
+            .find(|field| field.label == "First Name")
+            .expect("first");
+        assert!(first.y < 570.0);
+        assert!(first.width < 80.0);
     }
 }

@@ -42,7 +42,16 @@ async function request<T>(
 		headers.set('authorization', `Bearer ${session.access_token}`);
 	}
 
-	const response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers, cache: 'no-store' });
+	let response: Response;
+	try {
+		response = await fetch(`${apiBaseUrl()}${path}`, { ...init, headers, cache: 'no-store' });
+	} catch {
+		throw new ApiError(
+			'Docufill is unreachable. Confirm the API is running and try again.',
+			'network_error',
+			0
+		);
+	}
 	if (!response.ok) {
 		const payload = await response.json().catch(() => null);
 		const ownerRequest = !options.public && !options.participantSession;

@@ -124,6 +124,38 @@ impl Config {
         }
         Ok(())
     }
+
+    pub fn cors_origins(&self) -> AppResult<Vec<String>> {
+        cors_origin_aliases(&self.web_origin)
+    }
+}
+
+pub fn cors_origin_aliases(web_origin: &str) -> AppResult<Vec<String>> {
+    let primary = url::Url::parse(web_origin)
+        .map_err(|_| AppError::configuration("WEB_ORIGIN is invalid"))?;
+    let origin = primary.origin().ascii_serialization();
+    if origin == "null" {
+        return Err(AppError::configuration("WEB_ORIGIN is invalid"));
+    }
+
+    let mut origins = vec![origin.clone()];
+    if let Some(twin) = loopback_origin_twin(&primary)
+        && twin != origin
+    {
+        origins.push(twin);
+    }
+    Ok(origins)
+}
+
+fn loopback_origin_twin(origin: &url::Url) -> Option<String> {
+    let twin_host = match origin.host_str()? {
+        "localhost" => "127.0.0.1",
+        "127.0.0.1" => "localhost",
+        _ => return None,
+    };
+    let mut twin = origin.clone();
+    twin.set_host(Some(twin_host)).ok()?;
+    Some(twin.origin().ascii_serialization())
 }
 
 fn required(key: &str) -> AppResult<String> {
@@ -188,5 +220,25 @@ mod tests {
     #[test]
     fn accepts_complete_production_configuration() {
         assert!(configuration("production").validate().is_ok());
+    }
+
+    #[test]
+    fn allows_loopback_host_twins_for_local_web_origins() {
+        assert_eq!(
+            cors_origin_aliases("http://localhost:5173").expect("origin"),
+            ["http://localhost:5173", "http://127.0.0.1:5173"]
+        );
+        assert_eq!(
+            cors_origin_aliases("http://127.0.0.1:4173").expect("origin"),
+            ["http://127.0.0.1:4173", "http://localhost:4173"]
+        );
+    }
+
+    #[test]
+    fn keeps_deployed_web_origins_exact() {
+        assert_eq!(
+            cors_origin_aliases("https://app.example.com").expect("origin"),
+            ["https://app.example.com"]
+        );
     }
 }

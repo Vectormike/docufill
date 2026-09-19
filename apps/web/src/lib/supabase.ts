@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { resolveApiBaseUrl } from './api-url';
 
 let client: SupabaseClient | undefined;
 
@@ -27,5 +28,8 @@ export function getSupabase(): SupabaseClient {
 }
 
 export function apiBaseUrl(): string {
-	return (env.PUBLIC_API_URL || 'http://localhost:8080').replace(/\/$/, '');
+	return resolveApiBaseUrl(
+		env.PUBLIC_API_URL || 'http://localhost:8080',
+		browser ? window.location.hostname : undefined
+	);
 }

@@ -2,12 +2,16 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 test('landing experience is accessible, responsive, and fast', async ({ page }) => {
+	// Audit the settled page. The landing animations fade content in, so sampling
+	// mid-tween measures contrast against a partially transparent colour and the
+	// result depends on when the scan happens to run.
+	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await page.goto('/');
 
 	await expect(page).toHaveTitle(/Docufill.*Fill forms once/);
 	await expect(page.getByRole('heading', { level: 1 })).toContainText('Fill forms once');
-	await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
-	await expect(page.getByText('optional questions', { exact: false })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Continue with Google' }).first()).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Upload a PDF and see it fill.' })).toBeVisible();
 
 	const accessibility = await new AxeBuilder({ page }).analyze();
 	expect(
@@ -27,14 +31,31 @@ test('landing experience is accessible, responsive, and fast', async ({ page }) 
 	expect(metrics.overflow).toBeLessThanOrEqual(1);
 });
 
-test('reduced motion removes long onboarding animation', async ({ page }) => {
+test('reduced motion settles the landing page instead of animating it', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await page.goto('/');
 
-	const duration = await page.locator('.logo-drop').evaluate((element) => {
-		return Number.parseFloat(getComputedStyle(element).animationDuration);
+	// The scroll-driven headline must arrive already legible rather than waiting
+	// on a scrub, and the section must not be pinned under the viewport.
+	const word = page.locator('.aboutSection__word').first();
+	await expect(word).toHaveCSS('color', 'rgb(250, 204, 21)');
+	await expect(page.locator('.pin-spacer')).toHaveCount(0);
+
+	const fill = await page
+		.locator('.progress-fill')
+		.first()
+		.evaluate((element) => Number.parseFloat((element as HTMLElement).style.width));
+	expect(fill).toBeGreaterThan(0);
+
+	const cssAnimation = await page.evaluate(() => {
+		const probe = document.createElement('div');
+		probe.className = 'reveal-up';
+		document.body.append(probe);
+		const duration = getComputedStyle(probe).animationDuration;
+		probe.remove();
+		return Number.parseFloat(duration);
 	});
-	expect(duration).toBeLessThanOrEqual(0.01);
+	expect(cssAnimation).toBeLessThanOrEqual(0.01);
 });
 
 test('the app renders in light mode only', async ({ page }) => {

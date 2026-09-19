@@ -1,72 +1,10 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 
-/* Custom Fonts */
-/* Primary Font: Rebond Grotesque */
-@font-face {
-	font-family: 'RebondGrotesque';
-	src: url('/fonts/RebondGrotesque/RebondGrotesque-Regular.woff2') format('woff2'),
-	     url('/fonts/RebondGrotesque/RebondGrotesque-Regular.otf') format('opentype');
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'RebondGrotesque';
-	src: url('/fonts/RebondGrotesque/RebondGrotesque-Medium.woff2') format('woff2'),
-	     url('/fonts/RebondGrotesque/RebondGrotesque-Medium.otf') format('opentype');
-	font-weight: 500;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'RebondGrotesque';
-	src: url('/fonts/RebondGrotesque/RebondGrotesque-Bold.woff2') format('woff2'),
-	     url('/fonts/RebondGrotesque/RebondGrotesque-Bold.otf') format('opentype');
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-}
-
-/* Secondary Font: Lock Serif Stencil */
-@font-face {
-	font-family: 'LockSerifStencil';
-	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Regular.otf') format('opentype');
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'LockSerifStencil';
-	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Medium.otf') format('opentype');
-	font-weight: 500;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'LockSerifStencil';
-	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Bold.otf') format('opentype');
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'LockSerifStencil';
-	src: url('/fonts/LockSerifStencil-TRIAL/LockSerifStencilTRIAL-Black.otf') format('opentype');
-	font-weight: 900;
-	font-style: normal;
-	font-display: swap;
-}
-
 @theme inline {
-	--font-sans: 'Host Grotesk', 'Space Grotesk', 'Bricolage Grotesque', 'RebondGrotesque', ui-sans-serif, system-ui, sans-serif;
-	--font-display: 'LockSerifStencil', Georgia, serif;
-	--font-serif: 'LockSerifStencil', Georgia, serif;
+	--font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-display: 'Newsreader Variable', 'Iowan Old Style', Palatino, Georgia, serif;
+	--font-serif: 'Newsreader Variable', 'Iowan Old Style', Palatino, Georgia, serif;
 	--font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
 	--color-canvas: var(--canvas);
 	--color-surface: var(--surface);
@@ -93,7 +31,8 @@
 	--shadow-card: var(--card-shadow);
 	--font-weight-semibold: 550;
 	--font-weight-bold: 700;
-	--font-weight-extrabold: 900;
+	--font-weight-extrabold: 800;
+	--font-weight-black: 800;
 }
 
 :root {
@@ -335,7 +274,9 @@ textarea:focus-visible {
 	border: 2px dashed var(--line);
 	border-radius: var(--radius-card);
 	background: var(--surface);
-	transition: border-color var(--motion-base) ease, background var(--motion-base) ease;
+	transition:
+		border-color var(--motion-base) ease,
+		background var(--motion-base) ease;
 	cursor: pointer;
 }
 
@@ -350,7 +291,9 @@ textarea:focus-visible {
 	border-radius: var(--radius-card);
 	overflow: hidden;
 	background: var(--card-dark);
-	box-shadow: 0 25px 60px rgb(0 0 0 / 18%), 0 8px 24px rgb(0 0 0 / 10%);
+	box-shadow:
+		0 25px 60px rgb(0 0 0 / 18%),
+		0 8px 24px rgb(0 0 0 / 10%);
 }
 
 .video-frame video {

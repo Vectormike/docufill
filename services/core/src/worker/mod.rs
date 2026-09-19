@@ -32,6 +32,10 @@ impl Worker {
         }
     }
 
+    pub async fn extract_document(&self, job: &ProcessingJob) -> AppResult<()> {
+        extract_job::run(&self.state, &self.pdf, job).await
+    }
+
     pub async fn run(self) -> AppResult<()> {
         tracing::info!(worker_id = %self.worker_id, "document worker started");
         let mut failure_backoff = INITIAL_FAILURE_BACKOFF;

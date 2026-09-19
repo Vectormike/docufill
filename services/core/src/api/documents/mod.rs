@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::{
     AppError, AppResult, AppState,
     auth::AuthUser,
+    fields::requires_owner_answer,
     memory::is_sensitive_label,
     models::{
         AddTextContext, AssignField, CopilotSummary, CreateDocument, DocumentDetail, DocumentField,
@@ -263,6 +264,7 @@ pub async fn update_field(
     .bind(input.confirmed)
     .fetch_one(&mut *transaction)
     .await?;
+    let field = with_required(field);
     if input.confirmed {
         sqlx::query(
             "update public.answer_proposals
@@ -273,21 +275,7 @@ pub async fn update_field(
         .execute(&mut *transaction)
         .await?;
     }
-    sqlx::query(
-        "update public.documents
-         set preview_storage_path = null,
-             status = case when exists(
-               select 1 from public.document_fields
-               where document_id = $1 and kind <> 'signature'
-                 and (value_ciphertext is null or confirmed_at is null)
-             ) then 'needs_input'::public.document_status
-             else 'ready'::public.document_status end
-         where id = $1 and owner_id = $2",
-    )
-    .bind(document_id)
-    .bind(user.id)
-    .execute(&mut *transaction)
-    .await?;
+    refresh_owner_input_status(&mut transaction, document_id, Some(user.id)).await?;
     audit(
         &mut transaction,
         user.id,
@@ -321,15 +309,7 @@ pub async fn clear_field(
     .bind(user.id)
     .execute(&mut *transaction)
     .await?;
-    sqlx::query(
-        "update public.documents
-         set status = 'needs_input', preview_storage_path = null
-         where id = $1 and owner_id = $2",
-    )
-    .bind(document_id)
-    .bind(user.id)
-    .execute(&mut *transaction)
-    .await?;
+    refresh_owner_input_status(&mut transaction, document_id, Some(user.id)).await?;
     if cleared.rows_affected() == 0 {
         return Err(AppError::NotFound);
     }
@@ -391,15 +371,7 @@ pub async fn assign_field(
     if updated.rows_affected() == 0 {
         return Err(AppError::NotFound);
     }
-    sqlx::query(
-        "update public.documents
-         set status = 'needs_input', preview_storage_path = null
-         where id = $1 and owner_id = $2",
-    )
-    .bind(document_id)
-    .bind(user.id)
-    .execute(&mut *transaction)
-    .await?;
+    refresh_owner_input_status(&mut transaction, document_id, Some(user.id)).await?;
     audit(
         &mut transaction,
         user.id,
@@ -607,14 +579,7 @@ pub async fn request_preview(
     Path(document_id): Path<Uuid>,
 ) -> AppResult<Json<crate::models::CompletionQueued>> {
     ensure_owns_document(&state, user.id, document_id).await?;
-    let unconfirmed = sqlx::query_scalar::<_, i64>(
-        "select count(*) from public.document_fields
-         where document_id = $1 and kind <> 'signature'
-           and (value_ciphertext is null or confirmed_at is null)",
-    )
-    .bind(document_id)
-    .fetch_one(&state.pool)
-    .await?;
+    let unconfirmed = count_blocking_owner_fields(&state.pool, document_id).await?;
     if unconfirmed > 0 {
         return Err(AppError::Validation(format!(
             "{unconfirmed} answers still need confirmation"
@@ -711,6 +676,86 @@ async fn owned_document(
     .map_err(Into::into)
 }
 
+#[derive(FromRow)]
+struct FieldGate {
+    label: String,
+    kind: String,
+    participant_id: Option<Uuid>,
+    has_value: bool,
+    confirmed: bool,
+}
+
+async fn field_gates(
+    executor: impl sqlx::Executor<'_, Database = sqlx::Postgres>,
+    document_id: Uuid,
+) -> AppResult<Vec<FieldGate>> {
+    sqlx::query_as::<_, FieldGate>(
+        "select label, kind::text as kind, participant_id,
+                value_ciphertext is not null as has_value,
+                confirmed_at is not null as confirmed
+         from public.document_fields
+         where document_id = $1",
+    )
+    .bind(document_id)
+    .fetch_all(executor)
+    .await
+    .map_err(Into::into)
+}
+
+pub(crate) fn with_required(mut field: DocumentField) -> DocumentField {
+    field.required = requires_owner_answer(&field.label, &field.kind);
+    field
+}
+
+fn blocking_owner_count(fields: &[FieldGate]) -> i64 {
+    fields
+        .iter()
+        .filter(|field| {
+            field.participant_id.is_none()
+                && requires_owner_answer(&field.label, &field.kind)
+                && (!field.has_value || !field.confirmed)
+        })
+        .count() as i64
+}
+
+async fn count_blocking_owner_fields(pool: &sqlx::PgPool, document_id: Uuid) -> AppResult<i64> {
+    Ok(blocking_owner_count(&field_gates(pool, document_id).await?))
+}
+
+pub(crate) async fn refresh_owner_input_status(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    document_id: Uuid,
+    owner_id: Option<Uuid>,
+) -> AppResult<()> {
+    let blocking = blocking_owner_count(&field_gates(&mut **transaction, document_id).await?);
+    let status = if blocking > 0 { "needs_input" } else { "ready" };
+    if let Some(owner_id) = owner_id {
+        sqlx::query(
+            "update public.documents
+             set preview_storage_path = null,
+                 status = $3::public.document_status
+             where id = $1 and owner_id = $2",
+        )
+        .bind(document_id)
+        .bind(owner_id)
+        .bind(status)
+        .execute(&mut **transaction)
+        .await?;
+    } else {
+        sqlx::query(
+            "update public.documents
+             set preview_storage_path = null,
+                 status = $2::public.document_status
+             where id = $1",
+        )
+        .bind(document_id)
+        .bind(status)
+        .execute(&mut **transaction)
+        .await?;
+    }
+    Ok(())
+}
+
 async fn fields_for_document(
     state: &AppState,
     owner_id: Uuid,
@@ -755,7 +800,7 @@ async fn fields_for_document(
                     .transpose()
                     .map_err(AppError::internal)?
             };
-            Ok(DocumentField {
+            Ok(with_required(DocumentField {
                 id: row.id,
                 participant_id: row.participant_id,
                 field_key: row.field_key,
@@ -777,7 +822,8 @@ async fn fields_for_document(
                 source_reference_count: row.source_reference_count,
                 confirmed_at: row.confirmed_at,
                 sort_order: row.sort_order,
-            })
+                required: false,
+            }))
         })
         .collect()
 }

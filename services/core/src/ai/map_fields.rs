@@ -4,7 +4,11 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{AppError, AppResult, config::Config};
+use super::field_fit::{
+    identifier_family, is_business_name_field, is_honorific_title, is_previous_contact, normalize,
+    value_fits_field,
+};
+use crate::{AppError, AppResult, config::Config, fields::extra_party_key};
 
 const MIN_AI_CONFIDENCE: f64 = 0.7;
 const GENERIC_TOKENS: [&str; 17] = [
@@ -86,7 +90,12 @@ impl AiMapper {
         field: &FieldForMapping,
         facts: &[FactForMapping],
     ) -> AppResult<Option<GroundedMapping>> {
-        if let Some(mapping) = deterministic_match(field, facts) {
+        if matches!(field.kind.as_str(), "signature" | "checkbox" | "radio") {
+            return Ok(None);
+        }
+        if let Some(mapping) = deterministic_match(field, facts)
+            .filter(|mapping| value_fits_field(&field.label, &field.kind, &mapping.value))
+        {
             return Ok(Some(mapping));
         }
 
@@ -153,17 +162,17 @@ impl AiMapper {
             return Ok(None);
         };
 
-        let is_grounded = valid_ai_mapping(&mapping, field.id, &allowed_ids);
+        let is_grounded = valid_ai_mapping(&mapping, field, &allowed_ids);
         Ok(is_grounded.then_some(mapping))
     }
 }
 
 fn valid_ai_mapping(
     mapping: &GroundedMapping,
-    field_id: Uuid,
+    field: &FieldForMapping,
     allowed_ids: &HashSet<Uuid>,
 ) -> bool {
-    mapping.field_id == field_id
+    mapping.field_id == field.id
         && !mapping.source_fact_ids.is_empty()
         && mapping
             .source_fact_ids
@@ -171,6 +180,7 @@ fn valid_ai_mapping(
             .all(|id| allowed_ids.contains(id))
         && (MIN_AI_CONFIDENCE..=1.0).contains(&mapping.confidence)
         && !mapping.deterministic
+        && value_fits_field(&field.label, &field.kind, &mapping.value)
 }
 
 fn deterministic_match(
@@ -185,20 +195,65 @@ fn deterministic_match(
                 "applicant name",
                 "prospective tenant name",
                 "declarant name",
+                "name of signatory",
+                "name of signatory 1",
+                "signatory 1 name",
+                "signatory name",
+                "certification name",
             ]
             .contains(&field_key.as_str());
+        let owner_given_name = fact_key == "full name"
+            && field_key == "first name"
+            && fact.value.split_whitespace().count() >= 1;
+        let owner_surname = fact_key == "full name"
+            && matches!(field_key.as_str(), "surname" | "last name")
+            && fact.value.split_whitespace().count() >= 2;
         let owner_phone_alias = fact_key == "phone number"
-            && ["telephone number", "telephone no", "mobile number"].contains(&field_key.as_str());
-        (fact.allow_exact && (field_key == fact_key || owner_name_alias || owner_phone_alias)).then(
-            || GroundedMapping {
+            && [
+                "telephone number",
+                "telephone no",
+                "mobile number",
+                "mobile phone no",
+                "mobile phone number",
+                "whatsapp number",
+                "whatsapp no",
+                "whats app number",
+                "whats app no",
+            ]
+            .contains(&field_key.as_str());
+        let account_name_alias = fact_key == "account name"
+            && ["name of account", "account name"].contains(&field_key.as_str());
+        let account_number_alias = fact_key == "account number"
+            && ["account number", "account no"].contains(&field_key.as_str());
+        let identifier_alias = identifier_family(&field_key)
+            .is_some_and(|family| identifier_family(&fact_key) == Some(family));
+        let value = if owner_given_name {
+            fact.value.split_whitespace().next().unwrap_or(&fact.value)
+        } else if owner_surname {
+            fact.value
+                .split_whitespace()
+                .next_back()
+                .unwrap_or(&fact.value)
+        } else {
+            fact.value.as_str()
+        };
+        (fact.allow_exact
+            && (field_key == fact_key
+                || owner_name_alias
+                || owner_given_name
+                || owner_surname
+                || owner_phone_alias
+                || account_name_alias
+                || account_number_alias
+                || identifier_alias))
+            .then(|| GroundedMapping {
                 field_id: field.id,
-                value: fact.value.clone(),
+                value: value.to_owned(),
                 source_fact_ids: vec![fact.id],
                 confidence: 1.0,
                 explanation: "Exact confirmed profile fact".to_owned(),
                 deterministic: true,
-            },
-        )
+            })
     })
 }
 
@@ -218,9 +273,12 @@ fn select_relevant_facts<'a>(
         .filter(|fact| {
             let fact_key = normalize(&fact.key);
             fact_is_compatible(&context, &fact_key)
-                && semantic_tokens(&fact_key)
-                    .iter()
-                    .any(|token| tokens.contains(token))
+                && !(is_previous_contact(&context) && !fact.allow_exact)
+                && (identifier_family(&context).is_some()
+                    || semantic_tokens(&fact_key)
+                        .iter()
+                        .any(|token| tokens.contains(token)))
+                && value_fits_field(&field.label, &field.kind, &fact.value)
         })
         .take(6)
         .collect()
@@ -242,22 +300,25 @@ fn semantic_tokens(value: &str) -> HashSet<String> {
 }
 
 fn fact_is_compatible(field: &str, fact: &str) -> bool {
+    if extra_party_key(field).is_some() && extra_party_key(fact) != extra_party_key(field) {
+        return false;
+    }
     if third_party_role(field).is_some_and(|role| third_party_role(fact) != Some(role)) {
         return false;
     }
-    [
-        "account",
-        "bvn",
-        "certificate",
-        "licence",
-        "license",
-        "nin",
-        "passport",
-        "registration",
-        "tax",
-    ]
-    .into_iter()
-    .all(|identifier| !field.contains(identifier) || fact.contains(identifier))
+    if is_honorific_title(field) {
+        return is_honorific_title(fact);
+    }
+    if is_business_name_field(field) {
+        return is_business_name_field(fact);
+    }
+    if is_previous_contact(field) {
+        return is_previous_contact(fact);
+    }
+    match identifier_family(field) {
+        Some(family) => identifier_family(fact) == Some(family),
+        None => identifier_family(fact).is_none(),
+    }
 }
 
 fn third_party_role(value: &str) -> Option<&'static str> {
@@ -270,22 +331,6 @@ fn third_party_role(value: &str) -> Option<&'static str> {
     ]
     .into_iter()
     .find_map(|(needle, role)| value.contains(needle).then_some(role))
-}
-
-fn normalize(value: &str) -> String {
-    value
-        .chars()
-        .map(|character| {
-            if character.is_alphanumeric() {
-                character.to_ascii_lowercase()
-            } else {
-                ' '
-            }
-        })
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 #[cfg(test)]
@@ -455,6 +500,65 @@ mod tests {
     }
 
     #[test]
+    fn first_signatory_can_use_owner_name() {
+        let fact = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "full name".to_owned(),
+            value: "Victor Jonah".to_owned(),
+            allow_exact: true,
+        };
+        let first = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Name of Signatory 1".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        let second = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Name of Signatory 2".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        assert!(deterministic_match(&first, std::slice::from_ref(&fact)).is_some());
+        assert!(deterministic_match(&second, std::slice::from_ref(&fact)).is_none());
+        assert!(select_relevant_facts(&second, std::slice::from_ref(&fact)).is_empty());
+    }
+
+    #[test]
+    fn later_signatory_phone_does_not_use_owner_phone() {
+        let field = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Mobile Phone No 2".to_owned(),
+            instructions: None,
+            kind: "phone".to_owned(),
+        };
+        let phone = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "phone number".to_owned(),
+            value: "+2348000000000".to_owned(),
+            allow_exact: true,
+        };
+        assert!(select_relevant_facts(&field, &[phone]).is_empty());
+    }
+
+    #[test]
+    fn signature_fields_are_not_auto_filled() {
+        let field = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Specimen Signature 1".to_owned(),
+            instructions: None,
+            kind: "signature".to_owned(),
+        };
+        let name = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "full name".to_owned(),
+            value: "Victor Jonah".to_owned(),
+            allow_exact: true,
+        };
+        assert!(deterministic_match(&field, &[name]).is_none());
+    }
+
+    #[test]
     fn rejects_low_confidence_ai_answers() {
         let field_id = Uuid::new_v4();
         let fact_id = Uuid::new_v4();
@@ -468,7 +572,180 @@ mod tests {
         };
         assert!(!valid_ai_mapping(
             &mapping,
-            field_id,
+            &FieldForMapping {
+                id: field_id,
+                label: "Employer".to_owned(),
+                instructions: None,
+                kind: "text".to_owned(),
+            },
+            &HashSet::from([fact_id])
+        ));
+    }
+
+    #[test]
+    fn bvn_and_tin_do_not_take_name_or_phone() {
+        let name = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "full name".to_owned(),
+            value: "Victor Jonah".to_owned(),
+            allow_exact: true,
+        };
+        let phone = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "phone number".to_owned(),
+            value: "+2348086249721".to_owned(),
+            allow_exact: true,
+        };
+        let memory_name = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "BVN".to_owned(),
+            value: "Victor Jonah".to_owned(),
+            allow_exact: false,
+        };
+        let memory_phone = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "TIN".to_owned(),
+            value: "MOBILE: 08086249721".to_owned(),
+            allow_exact: false,
+        };
+        let bvn = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Bank Verification Number".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        let tin = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "TIN".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        let facts = [name, phone, memory_name, memory_phone];
+        assert!(select_relevant_facts(&bvn, &facts).is_empty());
+        assert!(select_relevant_facts(&tin, &facts).is_empty());
+        assert!(deterministic_match(&bvn, &facts).is_none());
+        assert!(deterministic_match(&tin, &facts).is_none());
+
+        let real_bvn = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "bvn".to_owned(),
+            value: "22123456789".to_owned(),
+            allow_exact: true,
+        };
+        let mapped = deterministic_match(&bvn, std::slice::from_ref(&real_bvn)).expect("bvn");
+        assert_eq!(mapped.value, "22123456789");
+        assert_eq!(select_relevant_facts(&bvn, &[real_bvn]).len(), 1);
+    }
+
+    #[test]
+    fn title_and_business_name_stay_empty_without_matching_facts() {
+        let name = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "full name".to_owned(),
+            value: "Victor Jonah".to_owned(),
+            allow_exact: true,
+        };
+        let employer = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "employer".to_owned(),
+            value: "Employed at Bujeti".to_owned(),
+            allow_exact: true,
+        };
+        let title = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Title".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        let business = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Business Name".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        let facts = [name, employer];
+        assert!(select_relevant_facts(&title, &facts).is_empty());
+        assert!(select_relevant_facts(&business, &facts).is_empty());
+    }
+
+    #[test]
+    fn old_phone_does_not_use_current_phone() {
+        let field = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Old Phone No".to_owned(),
+            instructions: None,
+            kind: "phone".to_owned(),
+        };
+        let phone = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "phone number".to_owned(),
+            value: "+2348086249721".to_owned(),
+            allow_exact: true,
+        };
+        assert!(select_relevant_facts(&field, std::slice::from_ref(&phone)).is_empty());
+        let memory = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "Old Phone No".to_owned(),
+            value: "08086249721".to_owned(),
+            allow_exact: false,
+        };
+        assert!(select_relevant_facts(&field, &[phone, memory]).is_empty());
+    }
+
+    #[test]
+    fn first_and_last_name_split_from_full_name() {
+        let fact = FactForMapping {
+            id: Uuid::new_v4(),
+            key: "full name".to_owned(),
+            value: "Victor Jonah".to_owned(),
+            allow_exact: true,
+        };
+        let first = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "First Name".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        let surname = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "Surname".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        assert_eq!(
+            deterministic_match(&first, std::slice::from_ref(&fact))
+                .expect("first")
+                .value,
+            "Victor"
+        );
+        assert_eq!(
+            deterministic_match(&surname, std::slice::from_ref(&fact))
+                .expect("surname")
+                .value,
+            "Jonah"
+        );
+    }
+
+    #[test]
+    fn rejects_ai_name_on_an_identifier() {
+        let field = FieldForMapping {
+            id: Uuid::new_v4(),
+            label: "BVN".to_owned(),
+            instructions: None,
+            kind: "text".to_owned(),
+        };
+        let fact_id = Uuid::new_v4();
+        let mapping = GroundedMapping {
+            field_id: field.id,
+            value: "Victor Jonah".to_owned(),
+            source_fact_ids: vec![fact_id],
+            confidence: 0.9,
+            explanation: "Memory overlap".to_owned(),
+            deterministic: false,
+        };
+        assert!(!valid_ai_mapping(
+            &mapping,
+            &field,
             &HashSet::from([fact_id])
         ));
     }

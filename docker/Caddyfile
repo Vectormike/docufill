@@ -27,3 +27,7 @@
 		reverse_proxy web:3000
 	}
 }
+
+{$WWW_DOMAIN:www.localhost} {
+	redir {$PUBLIC_APP_URL:http://localhost}{uri} permanent
+}

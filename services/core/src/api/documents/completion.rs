@@ -43,16 +43,7 @@ pub async fn complete_document(
         return Err(AppError::NotFound);
     }
 
-    let missing = sqlx::query_scalar::<_, i64>(
-        "select count(*)
-         from public.document_fields
-         where document_id = $1
-           and kind not in ('signature', 'declaration')
-           and (value_ciphertext is null or confirmed_at is null)",
-    )
-    .bind(document_id)
-    .fetch_one(&state.pool)
-    .await?;
+    let missing = super::count_blocking_owner_fields(&state.pool, document_id).await?;
     if missing > 0 {
         return Err(AppError::Validation(format!(
             "{missing} required answers are still missing"
@@ -72,15 +63,16 @@ pub async fn complete_document(
         ));
     }
 
-    let signature_required = sqlx::query_scalar::<_, bool>(
-        "select exists(
-            select 1 from public.document_fields
-            where document_id = $1 and kind = 'signature' and participant_id is null
-         )",
+    let signature_labels = sqlx::query_as::<_, (String,)>(
+        "select label from public.document_fields
+         where document_id = $1 and kind = 'signature' and participant_id is null",
     )
     .bind(document_id)
-    .fetch_one(&state.pool)
+    .fetch_all(&state.pool)
     .await?;
+    let signature_required = signature_labels
+        .iter()
+        .any(|(label,)| !crate::fields::is_extra_party(label));
     if signature_required && input.apply_signature_id.is_none() {
         return Err(AppError::Validation(
             "Choose a saved signature before completing this document".to_owned(),

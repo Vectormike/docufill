@@ -3,6 +3,7 @@ pub mod api;
 pub mod auth;
 pub mod config;
 pub mod error;
+pub mod fields;
 pub mod memory;
 pub mod models;
 pub mod notifications;

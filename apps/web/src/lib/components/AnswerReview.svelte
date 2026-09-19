@@ -45,11 +45,15 @@
 						{/if}
 					</div>
 					<p
-						class="mt-2 text-sm leading-6 whitespace-pre-wrap {field.value
+						class="mt-2 text-sm leading-6 whitespace-pre-wrap {field.value ||
+						field.value_preview ||
+						field.required === false
 							? 'text-ink'
 							: 'font-semibold text-warning'}"
 					>
-						{field.value ?? field.value_preview ?? 'No confirmed answer'}
+						{field.value ??
+							field.value_preview ??
+							(field.required === false ? 'Left blank' : 'No confirmed answer')}
 					</p>
 				</div>
 				{#if !field.participant_id && field.kind !== 'signature'}

@@ -85,6 +85,7 @@ export interface components {
 			page_number: number;
 			/** Format: uuid */
 			participant_id?: string | null;
+			required: boolean;
 			/** Format: int32 */
 			sort_order: number;
 			source: string;

@@ -1,7 +1,8 @@
 use crate::pdf::ExtractedDocument;
 
-const TITLE_KEYWORDS: [(&str, u8); 7] = [
+const TITLE_KEYWORDS: [(&str, u8); 8] = [
     ("form", 100),
+    ("mandate", 95),
     ("application", 90),
     ("agreement", 80),
     ("questionnaire", 75),
@@ -87,6 +88,7 @@ mod tests {
         let document = ExtractedDocument {
             page_count: 1,
             fields: Vec::new(),
+            title: None,
             text_segments: vec![
                 segment("FEMI MARTINS CONSULT"),
                 segment("PLOT 260, ABUJA"),

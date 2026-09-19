@@ -6,14 +6,15 @@ use uuid::Uuid;
 
 use crate::{
     AppError, AppResult, AppState,
-    ai::{AiMapper, FactForMapping, FieldForMapping},
+    ai::{AiMapper, FactForMapping, FieldDetector, FieldForMapping},
+    fields::{is_extra_party, requires_owner_answer},
     memory::retrieve_approved_excerpts,
     models::ProcessingJob,
     pdf::{ExtractedDocument, ExtractedField, PdfEngine},
     security::CryptoService,
 };
 
-const ANALYZER_VERSION: &str = "digital-pdf-v4";
+const ANALYZER_VERSION: &str = "digital-pdf-v6";
 const MAX_CONCURRENT_MAPPINGS: usize = 4;
 
 #[derive(FromRow)]
@@ -70,13 +71,20 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
         (cached, true)
     } else {
         let engine = pdf.clone();
-        let extracted = tokio::task::spawn_blocking(move || engine.extract(bytes))
+        let extract_bytes = bytes.clone();
+        let mut extracted = tokio::task::spawn_blocking(move || engine.extract(extract_bytes))
             .await
             .map_err(AppError::internal)??;
+        extracted = detect_scanned_fields(state, pdf, bytes, extracted).await?;
         store_extraction(state, job.owner_id, &document.content_hash, &extracted).await?;
         (extracted, false)
     };
-    if let Some(subject) = super::document_title::suggest(&extracted) {
+    if let Some(subject) = extracted
+        .title
+        .clone()
+        .filter(|title| (4..=120).contains(&title.chars().count()))
+        .or_else(|| super::document_title::suggest(&extracted))
+    {
         sqlx::query("update public.documents set subject = $2 where id = $1 and owner_id = $3")
             .bind(job.document_id)
             .bind(subject)
@@ -152,12 +160,14 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
                     kind: field.kind.clone(),
                 };
                 let mut scoped_facts = facts.clone();
-                scoped_facts.extend(memory.into_iter().map(|excerpt| FactForMapping {
-                    id: excerpt.id,
-                    key: field.label.clone(),
-                    value: excerpt.content,
-                    allow_exact: false,
-                }));
+                if !is_extra_party(&field.label) {
+                    scoped_facts.extend(memory.into_iter().map(|excerpt| FactForMapping {
+                        id: excerpt.id,
+                        key: field.label.clone(),
+                        value: excerpt.content,
+                        allow_exact: false,
+                    }));
+                }
                 let mapping = match mapper.map(&request, &scoped_facts).await {
                     Ok(mapping) => mapping,
                     Err(AppError::Upstream) => None,
@@ -183,13 +193,18 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
     let mut needs_input = false;
     for (sort_order, field_id, field, mapping) in mapped {
         let direct = mapping.as_ref().is_some_and(|value| value.deterministic);
+        let required = requires_owner_answer(&field.label, &field.kind);
         let source = if mapping.is_none() {
-            needs_input = true;
+            if required {
+                needs_input = true;
+            }
             "missing"
         } else if direct {
             "profile"
         } else {
-            needs_input = true;
+            if required {
+                needs_input = true;
+            }
             "ai_draft"
         };
         let encrypted = mapping
@@ -335,6 +350,33 @@ async fn store_extraction(
     .execute(&state.pool)
     .await?;
     Ok(())
+}
+
+async fn detect_scanned_fields(
+    state: &AppState,
+    pdf: &PdfEngine,
+    bytes: Vec<u8>,
+    mut extracted: ExtractedDocument,
+) -> AppResult<ExtractedDocument> {
+    if !extracted.fields.is_empty() {
+        return Ok(extracted);
+    }
+
+    let engine = pdf.clone();
+    let pages = tokio::task::spawn_blocking(move || engine.render_pages(bytes))
+        .await
+        .map_err(AppError::internal)??;
+    let detected = FieldDetector::new(&state.config)?.detect(&pages).await?;
+    if detected.fields.is_empty() {
+        return Err(AppError::Validation(
+            "This looks like a scanned form and no fillable fields could be found".to_owned(),
+        ));
+    }
+    extracted.fields = detected.fields;
+    if extracted.title.is_none() {
+        extracted.title = detected.title;
+    }
+    Ok(extracted)
 }
 
 fn unique_fields(fields: Vec<ExtractedField>) -> Vec<ExtractedField> {

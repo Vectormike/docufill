@@ -252,6 +252,7 @@ pub async fn participant_assignment(
                 font_size::float8 as font_size, alignment,
                 value_preview as value, value_preview,
                 source::text as source, confidence::float8 as confidence,
+                null::text as source_explanation, 0::int as source_reference_count,
                 confirmed_at, sort_order
          from public.document_fields
          where document_id = $1 and participant_id = $2
@@ -270,7 +271,13 @@ pub async fn participant_assignment(
         participant_name: record.participant_name,
         role: record.role,
         status: record.status,
-        fields,
+        fields: fields
+            .into_iter()
+            .map(|mut field| {
+                field.required = true;
+                field
+            })
+            .collect(),
     }))
 }
 
@@ -322,7 +329,9 @@ pub async fn participant_answer(
                    width::float8 as width, height::float8 as height,
                    font_size::float8 as font_size, alignment,
                    $5::text as value, value_preview, source::text as source,
-                   confidence::float8 as confidence, confirmed_at, sort_order",
+                   confidence::float8 as confidence,
+                   null::text as source_explanation, 0::int as source_reference_count,
+                   confirmed_at, sort_order",
     )
     .bind(field_id)
     .bind(record.participant_id)
@@ -339,21 +348,11 @@ pub async fn participant_answer(
     .bind(record.participant_id)
     .execute(&mut *transaction)
     .await?;
-    sqlx::query(
-        "update public.documents
-         set preview_storage_path = null,
-             status = case when exists(
-               select 1 from public.document_fields
-               where document_id = $1 and kind <> 'signature'
-                 and (value_ciphertext is null or confirmed_at is null)
-             ) then 'needs_input'::public.document_status
-             else 'ready'::public.document_status end
-         where id = $1",
-    )
-    .bind(record.document_id)
-    .execute(&mut *transaction)
-    .await?;
+    crate::api::documents::refresh_owner_input_status(&mut transaction, record.document_id, None)
+        .await?;
     transaction.commit().await?;
+    let mut field = field;
+    field.required = true;
     Ok(Json(field))
 }
 

@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Docufill — full walkthrough, sign up to signed PDF</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="demo.css" />
+	</head>
+	<body>
+		<template id="paper-tpl">
+			<article class="paper">
+				<p class="paper-meta">Tenancy Application.pdf · page 1 of 2</p>
+				<h3>Residential Tenancy Application</h3>
+				<p class="paper-sub">Property: 14 Admiralty Way, Lekki Phase 1, Lagos</p>
+				<p class="sec">Applicant</p>
+				<div class="pl" data-box="name">
+					<span>Full legal name</span><b class="val" data-val="name">Chinedu Okonkwo</b>
+				</div>
+				<div class="pl" data-box="email">
+					<span>Email address</span><b class="val" data-val="email">chinedu.okonkwo@gmail.com</b>
+				</div>
+				<div class="pl" data-box="phone">
+					<span>Phone number</span><b class="val" data-val="phone">+234 803 555 0142</b>
+				</div>
+				<div class="pl" data-box="address">
+					<span>Home address</span
+					><b class="val" data-val="address">27 Ologun Agbaje St, Victoria Island</b>
+				</div>
+				<div class="pl" data-box="employer">
+					<span>Current employer</span><b class="val" data-val="employer">Bujeti Limited</b>
+				</div>
+				<div class="pl" data-box="rent">
+					<span>Monthly rent offered</span><b class="val" data-val="rent">₦2,400,000</b>
+				</div>
+				<p class="sec guar">Guarantor</p>
+				<div class="pl" data-box="gname">
+					<span>Full name</span><b class="val" data-val="gname">Adaeze Okonkwo</b>
+				</div>
+				<div class="pl" data-box="grel">
+					<span>Relationship</span><b class="val" data-val="grel">Sister</b>
+				</div>
+				<div class="pl" data-box="gphone">
+					<span>Phone number</span><b class="val" data-val="gphone">+234 809 441 2201</b>
+				</div>
+				<div class="sign-row">
+					<span>Applicant signature</span>
+					<svg class="sig" viewBox="0 0 220 56" aria-hidden="true">
+						<path
+							d="M8 38c18-20 28 16 40 2 10-12 18-24 30-14 16 12 18 26 38 14 14-10 26-6 42 4 12 6 26 10 44-8"
+						/>
+					</svg>
+				</div>
+			</article>
+		</template>
+
+		<div class="player">
+			<div class="steps" id="steps">
+				<span data-step="signup">1 · Sign up</span>
+				<span data-step="details">2 · Your details</span>
+				<span data-step="upload">3 · Upload</span>
+				<span data-step="answer">4 · Answer</span>
+				<span data-step="invite">5 · Invite</span>
+				<span data-step="sign">6 · Sign</span>
+				<span data-step="done">7 · Done</span>
+			</div>
+
+			<!-- 1. title -->
+			<section class="scene is-on" data-scene="title">
+				<div class="hero">
+					<div class="logo">
+						<svg width="44" height="44" viewBox="0 0 48 48" aria-hidden="true">
+							<rect width="48" height="48" rx="14" fill="var(--brand)" />
+							<path d="M14 9h14l7 7v23H14V9Z" fill="var(--ink)" />
+							<path d="M28 9v8h7" fill="var(--brand)" />
+							<path
+								d="M19 23h11M19 28h9M19 33h6"
+								stroke="var(--brand)"
+								stroke-linecap="round"
+								stroke-width="2.5"
+							/>
+						</svg>
+						Docufill
+					</div>
+					<h1>From sign up to a signed PDF.</h1>
+					<p>
+						Chinedu has a tenancy application to fill. Watch the whole thing: create an account,
+						save his details once, then let the form fill itself.
+					</p>
+					<div class="chips">
+						<span class="chip">Real flow, start to finish</span>
+						<span class="chip">Under two minutes</span>
+					</div>
+				</div>
+			</section>
+
+			<!-- 2. sign up -->
+			<section class="scene" data-scene="signup">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 1 · Sign up</p>
+						<h2>He signs up with Google.</h2>
+						<p>
+							One tap. Google hands over <b>name, email and photo</b> — nothing else. Docufill
+							never reads his inbox.
+						</p>
+						<p>Those three details are already the first answers on any form.</p>
+						<ul>
+							<li>No password to invent</li>
+							<li>Email is verified from the start</li>
+						</ul>
+					</div>
+					<div class="stage">
+						<div class="app">
+							<div class="app-bar"><span class="logo">Docufill</span><span>Sign in</span></div>
+							<div class="app-body">
+								<h3 id="su-title">Fill forms once. Never fill them again.</h3>
+								<p class="lede" id="su-lede">Create your account to get started.</p>
+								<div class="gbtn" id="su-btn">
+									<span class="g-mark">G</span>
+									<span id="su-btn-text">Continue with Google</span>
+								</div>
+								<p class="or">or</p>
+								<div class="mail">Email me a sign-in link</div>
+								<div class="gcard" id="su-card">
+									<div class="avatar">CO</div>
+									<div>
+										<b>Chinedu Okonkwo</b>
+										<span>chinedu.okonkwo@gmail.com</span>
+									</div>
+								</div>
+								<p class="gnote" id="su-note">
+									From your Google profile. Your inbox is never accessed.
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- 3. onboarding -->
+			<section class="scene" data-scene="onboarding">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 2 · Your details</p>
+						<h2>Docufill asks a few questions. Once.</h2>
+						<p>
+							Three short screens: <b>about you</b>, <b>where you live</b>, <b>work</b>. Every
+							answer is saved and reused on every future form.
+						</p>
+						<p id="ob-note">Any field can be skipped and added later.</p>
+					</div>
+					<div class="stage">
+						<div class="app">
+							<div class="app-bar">
+								<span class="logo">Docufill</span><span>I'll add these later</span>
+							</div>
+							<div class="app-body">
+								<span class="pill" id="ob-pill">1 of 3</span>
+								<h3 class="ask" id="ob-title" style="margin-top: 9px">
+									<span class="mark">About you</span>
+								</h3>
+								<div class="fields" id="ob-fields"></div>
+								<div class="cta" id="ob-cta">Continue</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- 4. saved details -->
+			<section class="scene" data-scene="vault">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 2 · Your details</p>
+						<h2>This is his reusable profile.</h2>
+						<p>
+							Twelve confirmed details, encrypted and grouped. He typed them <b>once</b>. He will
+							not type them again.
+						</p>
+						<p>Sensitive values stay hidden until a form actually asks for them.</p>
+					</div>
+					<div class="stage">
+						<div class="app">
+							<div class="app-bar"><span class="logo">Docufill</span><span>My details</span></div>
+							<div class="app-body">
+								<h3>Saved and reusable</h3>
+								<div class="vault" style="margin-top: 10px">
+									<div>Full name <span>Chinedu Okonkwo</span></div>
+									<div>Email address <span>chinedu.okonkwo@gmail.com</span></div>
+									<div>Phone number <span>+234 803 555 0142</span></div>
+									<div>Home address <span>27 Ologun Agbaje St, Victoria Island</span></div>
+									<div>Occupation <span>Backend Engineer</span></div>
+									<div>Current employer <span>Bujeti Limited</span></div>
+									<div>Date of birth <span>Encrypted</span></div>
+								</div>
+								<p class="lede" style="margin-top: 12px">+ 5 more · exportable · deletable</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- 5. upload -->
+			<section class="scene" data-scene="upload">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 3 · Upload</p>
+						<h2>Now the actual form.</h2>
+						<p>
+							He drops <b>Tenancy Application.pdf</b> in. Docufill names the document from the
+							filename and asks him to confirm it is a routine form.
+						</p>
+						<p id="up-note">Digital PDFs only · 25 MB max · the original is never edited.</p>
+					</div>
+					<div class="stage">
+						<div class="app">
+							<div class="app-bar"><span class="logo">Docufill</span><span>New document</span></div>
+							<div class="app-body">
+								<h3>Add a document</h3>
+								<div class="drop" id="up-drop">
+									<h3>Drop a PDF here</h3>
+									<p>or tap to choose · PDF only · 25 MB max</p>
+								</div>
+								<div class="picked" id="up-picked">
+									<b>Tenancy Application.pdf</b>
+									<span>318 KB · named "<i id="up-name"></i>"</span>
+								</div>
+								<div class="ack">
+									<span class="tick" id="up-tick">✓</span>
+									<span>This is a routine form, not a will, court or tax document.</span>
+								</div>
+								<div class="cta" id="up-cta">Upload document</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- 6. processing -->
+			<section class="scene" data-scene="processing">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 3 · Upload</p>
+						<h2>Docufill reads the page.</h2>
+						<p>
+							It finds every field on the PDF, then checks each one against the details he already
+							saved.
+						</p>
+						<p>The original file is stored untouched. Only a copy is read.</p>
+					</div>
+					<div class="stage">
+						<div class="app">
+							<div class="app-bar">
+								<span class="logo">Docufill</span><span id="pr-pct">0%</span>
+							</div>
+							<div class="app-body">
+								<h3>Working on Tenancy Application</h3>
+								<div class="stages" id="pr-stages">
+									<div data-stage="0"><span class="tick">✓</span> Checking the PDF</div>
+									<div data-stage="1"><span class="tick">✓</span> Uploading to private storage</div>
+									<div data-stage="2"><span class="tick">✓</span> Finding fields on the page</div>
+									<div data-stage="3">
+										<span class="tick">✓</span> Matching your saved details
+									</div>
+								</div>
+								<div class="meter"><i id="pr-meter"></i></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- 7. copilot -->
+			<section class="scene" data-scene="copilot">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 4 · Answer</p>
+						<h2>18 fields. He has to answer one.</h2>
+						<p>
+							Everything he saved during sign up is already matched to the page. What is left is a
+							short list, and one block that belongs to someone else.
+						</p>
+						<div class="stats">
+							<div><strong>14</strong>from his details</div>
+							<div><strong>1</strong>needs him</div>
+							<div><strong>3</strong>for his guarantor</div>
+						</div>
+					</div>
+					<div class="stage" data-paper="copilot"></div>
+				</div>
+			</section>
+
+			<!-- 8. questions -->
+			<section class="scene" data-scene="questions">
+				<div class="card split">
+					<div class="copy flush" style="padding: 0">
+						<div style="padding: 30px 30px 20px">
+							<p class="kicker">Step 4 · Answer</p>
+							<h2 class="ask">Answer the gaps</h2>
+							<p id="qn-note" style="font-size: 16px">
+								Watch the right side: each answer is written straight onto the PDF.
+							</p>
+						</div>
+						<div class="rows" id="qn-rows">
+							<div class="row" data-q="name">
+								<span class="n">01</span>
+								<div><p class="q">Full legal name</p><p class="a">Chinedu Okonkwo</p></div>
+								<span class="tag known">Your details</span>
+							</div>
+							<div class="row" data-q="phone">
+								<span class="n">02</span>
+								<div><p class="q">Phone number</p><p class="a">+234 803 555 0142</p></div>
+								<span class="tag known">Your details</span>
+							</div>
+							<div class="row" data-q="address">
+								<span class="n">03</span>
+								<div>
+									<p class="q">Home address</p>
+									<p class="a">27 Ologun Agbaje St, Victoria Island</p>
+								</div>
+								<span class="tag known">Your details</span>
+							</div>
+							<div class="row" data-q="employer">
+								<span class="n">04</span>
+								<div><p class="q">Current employer</p><p class="a">Bujeti Limited</p></div>
+								<span class="tag known">Your details</span>
+							</div>
+							<div class="row" data-q="rent">
+								<span class="n">05</span>
+								<div>
+									<p class="q">Monthly rent offered</p>
+									<p class="a" id="qn-rent">Type your answer</p>
+								</div>
+								<span class="tag ask" id="qn-rent-tag">Needs you</span>
+							</div>
+							<div class="row" data-q="gname">
+								<span class="n">06</span>
+								<div>
+									<p class="q">Guarantor full name</p>
+									<p class="a" id="qn-guar">Not yours to answer</p>
+								</div>
+								<span class="tag wait" id="qn-guar-tag">Assign it</span>
+							</div>
+						</div>
+					</div>
+					<div class="stage" data-paper="questions"></div>
+				</div>
+			</section>
+
+			<!-- 9. invite -->
+			<section class="scene" data-scene="invite">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 5 · Invite</p>
+						<h2>The guarantor block goes to his sister.</h2>
+						<p>
+							He sends those three questions to <b>Adaeze</b> by email, with a private link and a
+							six-digit code.
+						</p>
+						<p>
+							She never sees the PDF, his address, or his rent — only the three lines assigned to
+							her.
+						</p>
+					</div>
+					<div class="stage">
+						<div class="app">
+							<div class="app-bar">
+								<span class="logo">Docufill</span><span>Send to someone else</span>
+							</div>
+							<div class="app-body">
+								<h3>Who fills the guarantor section?</h3>
+								<div class="fld">
+									<span>Their name</span>
+									<div class="box filled" id="iv-name"><span>Adaeze Okonkwo</span></div>
+								</div>
+								<div class="fld">
+									<span>Their email</span>
+									<div class="box" id="iv-mail"><span class="ph">name@example.com</span></div>
+								</div>
+								<div class="vault" style="margin-top: 14px">
+									<div>Guarantor full name <span class="tag wait">Assigned</span></div>
+									<div>Relationship <span class="tag wait">Assigned</span></div>
+									<div>Phone number <span class="tag wait">Assigned</span></div>
+								</div>
+								<div class="cta" id="iv-cta">Send private link</div>
+								<p class="lede" id="iv-sent" style="margin-top: 10px"></p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- 10. participant -->
+			<section class="scene" data-scene="participant">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 5 · Invite</p>
+						<h2>Adaeze has no Docufill account.</h2>
+						<p>
+							She does not need one. She opens the link on her phone, types the code from her
+							email, answers <b>three questions</b>, and saves.
+						</p>
+						<p id="pt-note">Her answers lock onto Chinedu's document. That is all she has to do.</p>
+					</div>
+					<div class="stage">
+						<div class="phone">
+							<div class="bar-top"></div>
+							<h3 id="pt-title">Chinedu asked you to complete the guarantor section</h3>
+							<p class="lede" id="pt-lede">
+								You will only see the questions assigned to you — not the PDF.
+							</p>
+							<div class="code" id="pt-code">
+								<i></i><i></i><i></i><i></i><i></i><i></i>
+							</div>
+							<div class="fields" id="pt-fields"></div>
+							<div class="cta" id="pt-cta">Verify and continue</div>
+							<div class="receipt" id="pt-receipt">
+								Saved. Chinedu can finish the document now.
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- 11. sign -->
+			<section class="scene" data-scene="sign">
+				<div class="card split">
+					<div class="copy">
+						<p class="kicker">Step 6 · Sign</p>
+						<h2>Every line is filled. He reviews, then signs.</h2>
+						<p>
+							Docufill renders the completed PDF from the untouched original. He ticks the consent
+							box, and his saved signature is applied.
+						</p>
+						<div class="ack">
+							<span class="tick" id="sg-tick">✓</span>
+							<span>I reviewed this PDF and intend to complete and sign it.</span>
+						</div>
+						<div class="cta" id="sg-cta" style="max-width: 15rem">Sign and complete</div>
+					</div>
+					<div class="stage" data-paper="sign"></div>
+				</div>
+			</section>
+
+			<!-- 12. done -->
+			<section class="scene" data-scene="done">
+				<div class="card split">
+					<div class="copy">
+						<div class="seal">✓</div>
+						<p class="kicker" style="margin-top: 14px">Step 7 · Done</p>
+						<h2>Completed PDF, ready to download.</h2>
+						<p>
+							Signed, with a record of who answered what. The download link expires in five
+							minutes.
+						</p>
+						<div class="vault" style="margin-top: 16px">
+							<div>Tenancy Application.pdf <span class="tag known">Completed</span></div>
+							<div>Answers kept for next time <span class="tag known">Your own only</span></div>
+						</div>
+						<div class="cta" id="dn-cta" style="max-width: 20rem">Download completed PDF</div>
+					</div>
+					<div class="stage" data-paper="done"></div>
+				</div>
+			</section>
+
+			<!-- 13. reuse -->
+			<section class="scene" data-scene="reuse">
+				<div class="hero">
+					<h1>The next form starts here.</h1>
+					<p>
+						A new tenancy application. Same details, already matched. Chinedu reviews one line
+						instead of filling thirty.
+					</p>
+					<div class="chips">
+						<span class="chip">Form 1 — he typed one answer</span>
+						<span class="chip">Form 2 — he reviews and signs</span>
+					</div>
+					<p style="margin-top: 26px; font-size: 26px; font-weight: 800; color: var(--ink)">
+						<span class="mark">Fill forms once. Never fill them again.</span>
+					</p>
+				</div>
+			</section>
+
+			<audio id="music" src="score-demo.mp3" preload="auto"></audio>
+			<div class="caption">
+				<p>
+					<b id="cap-title">Docufill, end to end</b>
+					<span id="cap-body">Sign up, save your details once, and let the form fill itself.</span>
+				</p>
+				<div class="controls">
+					<button type="button" id="toggle">Pause</button>
+					<button type="button" id="mute">Mute</button>
+					<button type="button" id="restart">Replay</button>
+				</div>
+			</div>
+			<div class="bar"><i id="progress"></i></div>
+		</div>
+		<script src="demo.js"></script>
+	</body>
+</html>

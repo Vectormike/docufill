@@ -14,7 +14,7 @@ use crate::{
     security::CryptoService,
 };
 
-const ANALYZER_VERSION: &str = "digital-pdf-v6";
+const ANALYZER_VERSION: &str = "digital-pdf-v9";
 const MAX_CONCURRENT_MAPPINGS: usize = 4;
 
 #[derive(FromRow)]
@@ -378,7 +378,6 @@ async fn detect_scanned_fields(
     }
     Ok(extracted)
 }
-
 fn unique_fields(fields: Vec<ExtractedField>) -> Vec<ExtractedField> {
     let mut seen = HashMap::<String, usize>::new();
     fields

@@ -15,6 +15,15 @@
 		onpreview: () => Promise<void>;
 		previewing?: boolean;
 	} = $props();
+
+	function checkboxLabel(kind: string, value: string | null | undefined) {
+		if (!value) return null;
+		if (kind !== 'checkbox' && kind !== 'radio' && kind !== 'declaration') return value;
+		const normalized = value.toLowerCase();
+		if (['true', 'yes', 'checked', 'selected', 'on'].includes(normalized)) return 'Selected';
+		if (['false', 'no', 'unchecked', 'off'].includes(normalized)) return 'Not selected';
+		return value;
+	}
 </script>
 
 <section class="surface overflow-hidden">
@@ -51,8 +60,7 @@
 							? 'text-ink'
 							: 'font-semibold text-warning'}"
 					>
-						{field.value ??
-							field.value_preview ??
+						{checkboxLabel(field.kind, field.value ?? field.value_preview) ??
 							(field.required === false ? 'Left blank' : 'No confirmed answer')}
 					</p>
 				</div>

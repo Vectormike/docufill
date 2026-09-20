@@ -5,6 +5,7 @@ use crate::{AppError, AppResult};
 use super::{ExtractedField, TextSegment, extract::infer_kind};
 
 const MIN_PLACEHOLDER_CHARS: usize = 4;
+const GRID_INSET: f32 = 5.0;
 const MAX_LABEL_LENGTH: usize = 180;
 
 #[derive(Debug, Clone, Copy)]
@@ -28,6 +29,39 @@ struct Bounds {
     bottom: f32,
     right: f32,
     top: f32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct GridWall {
+    pub x: f32,
+    pub bottom: f32,
+    pub top: f32,
+}
+
+pub fn snap_fields_to_grid(fields: &mut [ExtractedField], walls: &[GridWall]) {
+    for field in fields {
+        if matches!(field.kind.as_str(), "checkbox" | "radio" | "signature") {
+            continue;
+        }
+        let probe = field.y + 3.0;
+        let Some(right) = walls
+            .iter()
+            .filter(|wall| {
+                wall.top - wall.bottom >= 8.0
+                    && wall.x > field.x + 16.0
+                    && wall.bottom <= probe
+                    && wall.top >= probe
+            })
+            .map(|wall| wall.x)
+            .min_by(|left, right| left.total_cmp(right))
+        else {
+            continue;
+        };
+        let width = right - GRID_INSET - field.x;
+        if width >= 24.0 {
+            field.width = field.width.min(width);
+        }
+    }
 }
 
 pub(super) fn extract_flat_page(
@@ -161,23 +195,20 @@ fn infer_labelled_fields(
                 .map(|next| next.left)
                 .or_else(|| header_stop_left(&row, label.field_left))
                 .unwrap_or(page_width - RIGHT_MARGIN);
-            let x = label.field_left;
+            let x = writable_start(&row, label.field_left, next_left);
             let width = next_left - x - 4.0;
             if width < MIN_LABELLED_WIDTH {
                 continue;
             }
-            let height = if label.text.to_ascii_lowercase().contains("address") {
-                22.0
-            } else {
-                16.0
-            };
+            let kind = infer_kind(&label.text).to_owned();
+            let height = if kind == "address" { 20.0 } else { 13.0 };
             fields.push(ExtractedField {
                 key: format!("label-{page_number}-{row_index}-{label_index}"),
-                kind: infer_kind(&label.text).to_owned(),
+                kind,
                 label: label.text.clone(),
                 page_number,
                 x,
-                y: (label.bottom - 4.0).max(24.0),
+                y: (label.bottom - 2.0).max(24.0),
                 width,
                 height,
             });
@@ -190,9 +221,9 @@ fn infer_labelled_fields(
                 label: mark.label,
                 page_number,
                 x: mark.x,
-                y: (mark.bottom - 2.0).max(24.0),
-                width: 12.0,
-                height: 12.0,
+                y: mark.bottom.max(24.0),
+                width: mark.width,
+                height: mark.height,
             });
         }
 
@@ -214,6 +245,8 @@ struct CheckboxMark {
     label: String,
     x: f32,
     bottom: f32,
+    width: f32,
+    height: f32,
 }
 
 fn cluster_rows(lines: &[TextLine]) -> Vec<Vec<&TextLine>> {
@@ -304,7 +337,7 @@ fn colon_labels(row: &[&TextLine]) -> Vec<ColonLabel> {
                 .iter()
                 .map(|item| item.value)
                 .collect();
-            let text = humanize_label(&clean_label(&raw));
+            let text = colon_field_label(&raw);
             if text
                 .chars()
                 .filter(|character| character.is_alphabetic())
@@ -373,6 +406,28 @@ fn header_stop_left(row: &[&TextLine], after: f32) -> Option<f32> {
     None
 }
 
+fn writable_start(row: &[&TextLine], after_colon: f32, until: f32) -> f32 {
+    let mut left = after_colon;
+    for _ in 0..24 {
+        let Some(right) = row
+            .iter()
+            .flat_map(|line| line.glyphs.iter())
+            .filter(|glyph| {
+                !glyph.value.is_whitespace()
+                    && glyph.left >= left - 1.0
+                    && glyph.left <= left + 12.0
+                    && glyph.left < until - 8.0
+            })
+            .map(|glyph| glyph.right)
+            .max_by(|left, right| left.total_cmp(right))
+        else {
+            break;
+        };
+        left = right + 3.0;
+    }
+    left
+}
+
 fn field_left_after(glyphs: &[Glyph], colon_index: usize) -> f32 {
     let mut index = colon_index + 1;
     while index < glyphs.len() && glyphs[index].value.is_whitespace() {
@@ -417,14 +472,16 @@ fn checkbox_marks(row: &[&TextLine]) -> Vec<CheckboxMark> {
                 following.push(item.value);
                 previous_right = item.right;
             }
-            let text = humanize_label(following.trim());
-            if text.eq_ignore_ascii_case("valid id") || text.is_empty() {
+            let text = checkbox_label(following.trim());
+            if text.is_empty() {
                 continue;
             }
             marks.push(CheckboxMark {
                 label: text,
                 x: glyph.left,
                 bottom: glyph.bottom,
+                width: (glyph.right - glyph.left).clamp(8.0, 14.0),
+                height: (glyph.top - glyph.bottom).clamp(8.0, 14.0),
             });
         }
     }
@@ -454,19 +511,53 @@ fn certification_blank(page_number: u16, row: &[&TextLine]) -> Option<ExtractedF
     })
 }
 
+fn colon_field_label(value: &str) -> String {
+    let text = clean_label(&tidy_label(value));
+    let lower = text.to_ascii_lowercase();
+    if lower.ends_with("date of birth") {
+        return "Date of Birth".to_owned();
+    }
+    text
+}
+
+fn checkbox_label(value: &str) -> String {
+    let text = tidy_label(value);
+    let lower = text.to_ascii_lowercase();
+    if lower == "valid id" || lower == "documents required" {
+        return String::new();
+    }
+    for stop in [" date of birth", " valid id", " old phone", " new phone"] {
+        if let Some(index) = lower.find(stop) {
+            return text[..index].trim().to_owned();
+        }
+    }
+    text
+}
+
+fn tidy_label(value: &str) -> String {
+    humanize_label(
+        &value
+            .replace(['☐', '□'], " ")
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
+}
+
 fn humanize_label(value: &str) -> String {
     let mut expanded = String::new();
-    for (index, character) in value.chars().enumerate() {
-        if index > 0
-            && character.is_uppercase()
-            && value
-                .chars()
-                .nth(index - 1)
-                .is_some_and(|previous| previous.is_lowercase())
-        {
-            expanded.push(' ');
+    let characters: Vec<char> = value.chars().collect();
+    for (index, character) in characters.iter().enumerate() {
+        if index > 0 && character.is_uppercase() {
+            let previous = characters[index - 1];
+            let next_is_lower = characters
+                .get(index + 1)
+                .is_some_and(|next| next.is_lowercase());
+            if previous.is_lowercase() || (previous.is_uppercase() && next_is_lower) {
+                expanded.push(' ');
+            }
         }
-        expanded.push(character);
+        expanded.push(*character);
     }
     expanded.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -752,6 +843,45 @@ mod tests {
     }
 
     #[test]
+    fn grid_walls_clip_fields_before_the_next_cell() {
+        let mut fields = vec![ExtractedField {
+            key: "new-phone".to_owned(),
+            label: "New Phone No".to_owned(),
+            kind: "phone".to_owned(),
+            page_number: 1,
+            x: 394.0,
+            y: 345.0,
+            width: 172.0,
+            height: 13.0,
+        }];
+        snap_fields_to_grid(
+            &mut fields,
+            &[GridWall {
+                x: 455.5,
+                bottom: 345.0,
+                top: 359.0,
+            }],
+        );
+        assert!(fields[0].x + fields[0].width < 456.0);
+        assert!(fields[0].width < 70.0);
+    }
+
+    #[test]
+    fn title_skips_the_printed_honorific_hint() {
+        let fields = infer_labelled_fields(
+            1,
+            600.0,
+            &[line_at("Title: (MR/MRS/MISS/DR/CHIEF/PROF)", 30.0, 569.0)],
+        );
+        let title = fields
+            .iter()
+            .find(|field| field.label == "Title")
+            .expect("title");
+        assert!(title.x > 180.0);
+        assert!(title.x + title.width <= 580.0);
+    }
+
+    #[test]
     fn labelled_fields_use_gaps_after_colons() {
         let fields = infer_labelled_fields(
             1,
@@ -778,6 +908,23 @@ mod tests {
     }
 
     #[test]
+    fn request_ticks_drop_the_valid_id_column() {
+        let fields = infer_labelled_fields(
+            1,
+            600.0,
+            &[line_at("☐ Soft Token {Re}activation Valid ID", 30.0, 330.0)],
+        );
+        assert_eq!(fields.len(), 1);
+        assert_eq!(fields[0].kind, "checkbox");
+        assert_eq!(fields[0].label, "Soft Token {Re}activation");
+    }
+
+    #[test]
+    fn splits_acronym_from_following_word() {
+        assert_eq!(humanize_label("USSDOpt-in"), "USSD Opt-in");
+    }
+
+    #[test]
     fn skips_instruction_colons() {
         let fields = infer_labelled_fields(
             1,
@@ -789,6 +936,27 @@ mod tests {
             )],
         );
         assert!(fields.is_empty());
+    }
+
+    #[test]
+    fn splits_sex_boxes_from_date_of_birth() {
+        let fields = infer_labelled_fields(
+            1,
+            600.0,
+            &[line_at("Sex: ☐ Male ☐ Female Date of Birth:", 30.0, 530.0)],
+        );
+        let labels: Vec<_> = fields.iter().map(|field| field.label.as_str()).collect();
+        assert!(labels.contains(&"Male"));
+        assert!(labels.contains(&"Female"));
+        assert!(labels.contains(&"Date of Birth"));
+        assert!(!labels.iter().any(|label| label.contains('☐')));
+        assert_eq!(
+            fields
+                .iter()
+                .filter(|field| field.kind == "checkbox")
+                .count(),
+            2
+        );
     }
 
     #[test]

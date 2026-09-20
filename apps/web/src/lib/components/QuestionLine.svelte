@@ -83,6 +83,14 @@
 	function leaveBlank() {
 		onnext();
 	}
+
+	function checkboxSummary(kind: string, value: string) {
+		if (kind !== 'checkbox' && kind !== 'radio' && kind !== 'declaration') return value;
+		const normalized = value.toLowerCase();
+		if (['true', 'yes', 'checked', 'selected', 'on'].includes(normalized)) return 'Selected';
+		if (['false', 'no', 'unchecked', 'off'].includes(normalized)) return 'Not selected';
+		return value;
+	}
 </script>
 
 <div
@@ -105,17 +113,19 @@
 			{/if}
 
 			<div class="mt-4">
-				{#if field.kind === 'checkbox' || field.kind === 'declaration'}
+				{#if field.kind === 'checkbox' || field.kind === 'radio' || field.kind === 'declaration'}
 					<label class="flex min-h-11 cursor-pointer items-center gap-3">
 						<input
 							type="checkbox"
-							checked={['true', 'yes', 'checked'].includes(answer.toLowerCase())}
+							checked={['true', 'yes', 'checked', 'selected', 'on'].includes(answer.toLowerCase())}
 							onchange={(event) => {
 								scheduleSave(event.currentTarget.checked ? 'yes' : 'no');
 							}}
-							class="rounded-sm border-line text-ink focus:ring-brand-strong"
+							class="size-4 rounded-sm border-line text-ink focus:ring-brand-strong"
 						/>
-						<span class="text-sm text-ink">Yes, I confirm</span>
+						<span class="text-sm text-ink">
+							{field.kind === 'declaration' ? 'Yes, I confirm' : field.label}
+						</span>
 					</label>
 				{:else if field.kind === 'multiline' || field.kind === 'address'}
 					<textarea
@@ -213,7 +223,8 @@
 				>
 					{delegated
 						? 'awaiting participant'
-						: value || (canSkip ? 'Optional · left blank' : 'No answer yet')}
+						: checkboxSummary(field.kind, value) ||
+							(canSkip ? 'Optional · left blank' : 'No answer yet')}
 				</span>
 			{/snippet}
 

@@ -16,6 +16,7 @@ struct DocumentRecord {
 #[derive(FromRow)]
 struct FieldRecord {
     field_key: String,
+    label: String,
     kind: String,
     page_number: i32,
     x: f64,
@@ -38,7 +39,7 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
     .fetch_one(&state.pool)
     .await?;
     let fields = sqlx::query_as::<_, FieldRecord>(
-        "select field_key, kind::text as kind, page_number,
+        "select field_key, label, kind::text as kind, page_number,
                 x::float8 as x, y::float8 as y, width::float8 as width,
                 height::float8 as height, font_size::float8 as font_size,
                 alignment, value_ciphertext, participant_id
@@ -65,6 +66,7 @@ pub async fn run(state: &AppState, pdf: &PdfEngine, job: &ProcessingJob) -> AppR
             let value = String::from_utf8(state.crypto.decrypt(encrypted).ok()?).ok()?;
             Some(FieldPlacement {
                 key: field.field_key.clone(),
+                label: field.label.clone(),
                 kind: field.kind.clone(),
                 page_number: field.page_number as u16,
                 x: field.x as f32,

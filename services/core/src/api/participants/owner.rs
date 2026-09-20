@@ -58,6 +58,11 @@ pub async fn create_participant(
     Json(input): Json<CreateParticipant>,
 ) -> AppResult<Json<ParticipantInvitation>> {
     validate_input(&input)?;
+    if input.send_invitation && !state.notifications.can_deliver() {
+        return Err(AppError::configuration(
+            "Email delivery is required to invite someone",
+        ));
+    }
     let document = sqlx::query_as::<_, (String, Option<String>)>(
         "select d.subject, p.display_name
          from public.documents d
@@ -136,22 +141,21 @@ pub async fn create_participant(
     .bind(user.id)
     .execute(&mut *transaction)
     .await?;
-    transaction.commit().await?;
 
+    // Send before committing: a delivered invite that nobody can open would
+    // hold the owner's own fields hostage, so a failed send must take the
+    // participant and the field assignments with it.
     let share_url = format!("{}/share/{}", state.config.public_app_url, token);
     let requester = document.1.as_deref().unwrap_or("A Docufill user");
     let invitation_sent = if input.send_invitation {
         state
             .notifications
             .send_participant_invitation(&contact, requester, &document.0, &share_url, &code)
-            .await
-            .unwrap_or_else(|error| {
-                tracing::warn!(?error, participant_id = %participant_id, "invitation email failed");
-                false
-            })
+            .await?
     } else {
         false
     };
+    transaction.commit().await?;
     sqlx::query(
         "insert into public.audit_events (
             owner_id, document_id, participant_id, actor_type, actor_id,

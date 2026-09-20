@@ -16,6 +16,12 @@ impl NotificationService {
         }
     }
 
+    /// The verification code only ever reaches a participant by email, so an
+    /// invite created without delivery can never be completed.
+    pub fn can_deliver(&self) -> bool {
+        self.api_key.is_some() && self.from.is_some()
+    }
+
     pub async fn send_participant_invitation(
         &self,
         recipient: &str,
@@ -64,4 +70,33 @@ fn escape_html(value: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn service(api_key: Option<&str>, from: Option<&str>) -> NotificationService {
+        NotificationService {
+            client: reqwest::Client::new(),
+            api_key: api_key.map(str::to_owned),
+            from: from.map(str::to_owned),
+        }
+    }
+
+    #[test]
+    fn delivery_needs_both_a_key_and_a_sender() {
+        assert!(service(Some("key"), Some("Docufill <mail@example.com>")).can_deliver());
+        assert!(!service(None, Some("Docufill <mail@example.com>")).can_deliver());
+        assert!(!service(Some("key"), None).can_deliver());
+        assert!(!service(None, None).can_deliver());
+    }
+
+    #[test]
+    fn invitation_content_is_escaped() {
+        assert_eq!(
+            escape_html("<script>&\"'"),
+            "&lt;script&gt;&amp;&quot;&#39;"
+        );
+    }
 }

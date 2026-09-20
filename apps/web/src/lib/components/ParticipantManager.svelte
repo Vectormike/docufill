@@ -125,9 +125,8 @@
 				<Check size={16} /> Invitation created
 			</p>
 			<p class="mt-1 text-xs leading-5 text-ink-muted">
-				{invitation.invitation_sent
-					? 'A verification code and secure link were emailed.'
-					: 'Email delivery is not configured. Copy the unique link after configuring delivery.'}
+				A verification code and secure link were emailed. The link expires in 7 days, and the code
+				in 15 minutes — they can request a fresh code from the link.
 			</p>
 			<div class="mt-3 flex gap-2">
 				<input

@@ -191,6 +191,8 @@ pub fn render_answers(
             })?;
             let line_height = fitted.font_size * 1.12;
             let block_height = fitted.lines.len() as f32 * line_height;
+            // Tall boxes are usually a row of character cells: sit on the first
+            // writing line (the top of the box) rather than floating in the middle.
             let first_baseline = placement.y
                 + (placement.height - block_height).max(0.0) / 2.0
                 + fitted.font_size * 0.18;

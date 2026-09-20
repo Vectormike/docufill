@@ -7,7 +7,7 @@ use serde::Deserialize;
 use crate::{
     AppError, AppResult,
     config::Config,
-    pdf::{ExtractedField, RenderedPage, infer_kind},
+    pdf::{ExtractedField, RenderedPage, infer_kind, snap_scanned_fields},
 };
 
 const MAX_FIELDS_PER_PAGE: usize = 40;
@@ -88,6 +88,7 @@ impl FieldDetector {
                     .title
                     .filter(|title| (4..=120).contains(&title.chars().count()));
             }
+            let start = detected.fields.len();
             for (index, field) in envelope
                 .fields
                 .into_iter()
@@ -98,6 +99,7 @@ impl FieldDetector {
                     detected.fields.push(extracted);
                 }
             }
+            snap_scanned_fields(&mut detected.fields[start..], page);
         }
         Ok(detected)
     }

@@ -495,6 +495,63 @@ mod tests {
     }
 
     #[test]
+    fn zenith_answers_land_in_the_character_boxes() {
+        let Ok(library_path) = std::env::var("PDFIUM_LIB_PATH") else {
+            return;
+        };
+        let Ok(bytes) = std::fs::read("/tmp/zenith-original.pdf") else {
+            return;
+        };
+        let engine = PdfEngine::new(Some(PathBuf::from(library_path)), None, 25_000_000, 10);
+        let pages = engine.render_pages(bytes.clone()).expect("render");
+        let mut fields = vec![
+            ExtractedField {
+                key: "name".to_owned(),
+                label: "Name of Account".to_owned(),
+                kind: "text".to_owned(),
+                page_number: 1,
+                x: 40.6,
+                y: 2326.3,
+                width: 1950.7,
+                height: 143.6,
+            },
+            ExtractedField {
+                key: "account".to_owned(),
+                label: "Account Number".to_owned(),
+                kind: "number".to_owned(),
+                page_number: 1,
+                x: 40.6,
+                y: 2096.6,
+                width: 711.2,
+                height: 114.9,
+            },
+        ];
+        crate::pdf::snap_scanned_fields(&mut fields, &pages[0]);
+        let placements = [("name", "1, Uyo, Nigeria"), ("account", "3243243243433")]
+            .into_iter()
+            .filter_map(|(key, value)| {
+                let field = fields.iter().find(|field| field.key == key)?;
+                Some(crate::pdf::FieldPlacement {
+                    key: field.key.clone(),
+                    label: field.label.clone(),
+                    kind: field.kind.clone(),
+                    page_number: field.page_number,
+                    x: field.x,
+                    y: field.y,
+                    width: field.width,
+                    height: field.height,
+                    font_size: None,
+                    alignment: "left".to_owned(),
+                    value: value.to_owned(),
+                })
+            })
+            .collect::<Vec<_>>();
+        let filled = crate::pdf::render_answers(&engine, bytes, &placements, &[]).expect("fill");
+        std::fs::write("/tmp/zenith-aligned.pdf", filled).expect("write");
+        assert!(placements[1].x > 300.0);
+    }
+
+    #[test]
     fn answers_on_an_oversized_scan_are_written_large_enough_to_read() {
         let Ok(library_path) = std::env::var("PDFIUM_LIB_PATH") else {
             return;

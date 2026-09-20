@@ -463,6 +463,54 @@ mod tests {
         );
     }
 
+    #[test]
+    fn answers_on_an_oversized_scan_are_written_large_enough_to_read() {
+        let Ok(library_path) = std::env::var("PDFIUM_LIB_PATH") else {
+            return;
+        };
+        let Ok(bytes) = std::fs::read("/tmp/zenith-original.pdf") else {
+            return;
+        };
+        let engine = PdfEngine::new(Some(PathBuf::from(library_path)), None, 25_000_000, 10);
+        // The vision detector sizes these boxes against a 2032pt wide media box.
+        let placements = vec![crate::pdf::FieldPlacement {
+            key: "name-of-signatory-1".to_owned(),
+            label: "Name of Signatory 1".to_owned(),
+            kind: "text".to_owned(),
+            page_number: 1,
+            x: 40.6,
+            y: 1953.0,
+            width: 914.4,
+            height: 114.9,
+            font_size: None,
+            alignment: "left".to_owned(),
+            value: "Victor Jonah".to_owned(),
+        }];
+        let filled = crate::pdf::render_answers(&engine, bytes, &placements, &[]).expect("render");
+        std::fs::write("/tmp/zenith-filled.pdf", &filled).expect("write");
+
+        let written = glyph_heights(&engine, filled, 'V');
+        let tallest = written.into_iter().fold(0.0_f32, f32::max);
+        // Fixed 9.5pt type put a 7pt capital on a page 2032pt across, far too small
+        // to read. Sized against the page it lands near 23pt instead.
+        assert!(tallest > 20.0, "capital letter was only {tallest}pt tall");
+    }
+
+    fn glyph_heights(engine: &PdfEngine, bytes: Vec<u8>, wanted: char) -> Vec<f32> {
+        let pdfium = engine.bind().expect("bind");
+        let document = pdfium
+            .load_pdf_from_byte_vec(bytes, None)
+            .expect("load rendered pdf");
+        let page = document.pages().first().expect("page");
+        let text = page.text().expect("page text");
+        text.chars()
+            .iter()
+            .filter(|character| character.unicode_char() == Some(wanted))
+            .filter_map(|character| character.tight_bounds().ok())
+            .map(|bounds| bounds.height().value)
+            .collect()
+    }
+
     /// Rounded anchors let us tell the answers we wrote apart from the printed form.
     fn glyph_anchors(engine: &PdfEngine, bytes: Vec<u8>) -> Vec<(char, i32, i32)> {
         let pdfium = engine.bind().expect("bind");

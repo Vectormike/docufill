@@ -11,6 +11,7 @@ const MAX_FONT_SIZE: f32 = 9.5;
 const MIN_FONT_SIZE: f32 = 7.0;
 const CHAR_WIDTH: f32 = 0.66;
 const BOX_INSET: f32 = 2.5;
+const REFERENCE_PAGE_WIDTH: f32 = 595.0;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldPlacement {
@@ -90,6 +91,8 @@ pub fn render_answers(
             .map_err(AppError::internal)?;
         let page_width = page.width().value;
         let page_height = page.height().value;
+        let scale = page_scale(page_width);
+        let inset = BOX_INSET * scale;
         if page_placements.iter().any(|placement| {
             !inside_page(
                 placement.x,
@@ -177,7 +180,8 @@ pub fn render_answers(
                 &placement.value,
                 placement.width,
                 placement.height,
-                placement.font_size.unwrap_or(MAX_FONT_SIZE),
+                placement.font_size.unwrap_or(MAX_FONT_SIZE) * scale,
+                scale,
             )
             .ok_or_else(|| {
                 AppError::Validation(format!(
@@ -187,19 +191,19 @@ pub fn render_answers(
             })?;
             let line_height = fitted.font_size * 1.12;
             let first_baseline = if fitted.lines.len() == 1 {
-                placement.y + BOX_INSET + 0.8
+                placement.y + inset + 0.8 * scale
             } else {
-                placement.y + placement.height - fitted.font_size - 1.0
+                placement.y + placement.height - fitted.font_size - scale
             };
-            let max_width = (placement.width - BOX_INSET * 2.0).max(4.0);
+            let max_width = (placement.width - inset * 2.0).max(4.0 * scale);
             for (line_index, line) in fitted.lines.iter().enumerate() {
                 let text_width = estimated_width(line, fitted.font_size).min(max_width);
                 let x = match placement.alignment.as_str() {
                     "center" => placement.x + (placement.width - text_width) / 2.0,
-                    "right" => placement.x + placement.width - text_width - BOX_INSET,
-                    _ => placement.x + BOX_INSET,
+                    "right" => placement.x + placement.width - text_width - inset,
+                    _ => placement.x + inset,
                 }
-                .clamp(placement.x, placement.x + placement.width - BOX_INSET);
+                .clamp(placement.x, placement.x + placement.width - inset);
                 let baseline = first_baseline - line_index as f32 * line_height;
                 let mut object = page
                     .objects_mut()
@@ -255,8 +259,15 @@ pub fn render_answers(
     document.save_to_bytes().map_err(AppError::internal)
 }
 
+/// The point sizes here are tuned against A4. Scanned pages routinely carry a media
+/// box several times that size, and on those a fixed 9.5pt answer comes out too small
+/// to read, so every measurement grows with the page.
+fn page_scale(page_width: f32) -> f32 {
+    (page_width / REFERENCE_PAGE_WIDTH).max(1.0)
+}
+
 pub fn fit_text(value: &str, width: f32, height: f32) -> Option<FittedText> {
-    fit_text_with_max(value, width, height, MAX_FONT_SIZE)
+    fit_text_with_max(value, width, height, MAX_FONT_SIZE, 1.0)
 }
 
 fn fit_text_with_max(
@@ -264,28 +275,31 @@ fn fit_text_with_max(
     width: f32,
     height: f32,
     maximum_font_size: f32,
+    scale: f32,
 ) -> Option<FittedText> {
     if value.trim().is_empty() || width <= 0.0 || height <= 0.0 {
         return None;
     }
 
+    let smallest = MIN_FONT_SIZE * scale;
+    let padding = 4.0 * scale;
     let mut font_size = maximum_font_size
-        .clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
-        .min((height - 4.0).max(MIN_FONT_SIZE));
-    while font_size >= MIN_FONT_SIZE {
-        let max_characters = ((width - 4.0) / (font_size * CHAR_WIDTH)).floor() as usize;
-        let max_lines = ((height - 4.0) / (font_size * 1.2)).floor() as usize;
+        .clamp(smallest, MAX_FONT_SIZE * scale)
+        .min((height - padding).max(smallest));
+    while font_size >= smallest {
+        let max_characters = ((width - padding) / (font_size * CHAR_WIDTH)).floor() as usize;
+        let max_lines = ((height - padding) / (font_size * 1.2)).floor() as usize;
         if max_characters > 0 && max_lines > 0 {
             let lines = wrap(value, max_characters);
             if lines.len() <= max_lines {
                 return Some(FittedText { font_size, lines });
             }
         }
-        font_size -= 0.5;
+        font_size -= 0.5 * scale;
     }
     if !value.contains(char::is_whitespace) {
         return Some(FittedText {
-            font_size: MIN_FONT_SIZE,
+            font_size: smallest,
             lines: vec![value.trim().to_owned()],
         });
     }
@@ -430,6 +444,25 @@ mod tests {
         assert!(is_ticked("Phone Number Update", "Phone Number Update"));
         assert!(!is_ticked("Male", "no"));
         assert!(!is_ticked("Female", "Male"));
+    }
+
+    #[test]
+    fn an_oversized_scan_gets_proportionally_larger_type() {
+        // A 2032pt wide scan is roughly three and a half A4 pages across.
+        let scale = page_scale(2032.0);
+        let fitted =
+            fit_text_with_max("Victor Jonah", 914.0, 115.0, 9.5 * scale, scale).expect("fits");
+
+        assert!((scale - 3.415).abs() < 0.01);
+        assert!(fitted.lines.len() == 1);
+        // Same share of the page as 9.5pt on A4, rather than a third of it.
+        assert!((fitted.font_size / 2032.0 - 9.5 / 595.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn ordinary_pages_keep_their_existing_type_size() {
+        assert_eq!(page_scale(594.96), 1.0);
+        assert_eq!(page_scale(612.0), 612.0 / 595.0);
     }
 
     #[test]

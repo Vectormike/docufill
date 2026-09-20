@@ -2,7 +2,18 @@
 	email {$ACME_EMAIL}
 }
 
+(compatible_tls) {
+	tls {
+		issuer acme {
+			preferred_chains {
+				root_common_name "ISRG Root X1"
+			}
+		}
+	}
+}
+
 {$APP_DOMAIN} {
+	import compatible_tls
 	encode zstd gzip
 
 	header {
@@ -29,5 +40,6 @@
 }
 
 {$WWW_DOMAIN:www.localhost} {
+	import compatible_tls
 	redir {$PUBLIC_APP_URL:http://localhost}{uri} permanent
 }

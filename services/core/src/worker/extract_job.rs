@@ -14,7 +14,7 @@ use crate::{
     security::CryptoService,
 };
 
-const ANALYZER_VERSION: &str = "digital-pdf-v9";
+const ANALYZER_VERSION: &str = "digital-pdf-v10";
 const MAX_CONCURRENT_MAPPINGS: usize = 4;
 
 #[derive(FromRow)]

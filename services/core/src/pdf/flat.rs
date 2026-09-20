@@ -6,6 +6,9 @@ use super::{ExtractedField, TextSegment, extract::infer_kind};
 
 const MIN_PLACEHOLDER_CHARS: usize = 4;
 const GRID_INSET: f32 = 5.0;
+const CELL_INSET: f32 = 2.0;
+const LABEL_GAP: f32 = 6.0;
+const SINGLE_LINE_CELL: f32 = 26.0;
 const MAX_LABEL_LENGTH: usize = 180;
 
 #[derive(Debug, Clone, Copy)]
@@ -38,6 +41,36 @@ pub struct GridWall {
     pub top: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct GridRail {
+    pub y: f32,
+    pub left: f32,
+    pub right: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Cell {
+    left: f32,
+    bottom: f32,
+    right: f32,
+    top: f32,
+}
+
+impl Cell {
+    fn height(self) -> f32 {
+        self.top - self.bottom
+    }
+
+    fn key(self) -> (i32, i32, i32, i32) {
+        (
+            self.left.round() as i32,
+            self.bottom.round() as i32,
+            self.right.round() as i32,
+            self.top.round() as i32,
+        )
+    }
+}
+
 pub fn snap_fields_to_grid(fields: &mut [ExtractedField], walls: &[GridWall]) {
     for field in fields {
         if matches!(field.kind.as_str(), "checkbox" | "radio" | "signature") {
@@ -62,6 +95,83 @@ pub fn snap_fields_to_grid(fields: &mut [ExtractedField], walls: &[GridWall]) {
             field.width = field.width.min(width);
         }
     }
+}
+
+/// Clip each write-in field to the printed cell it sits in. A lone field in a
+/// short row takes the whole remaining cell so the answer sits in the box, not
+/// on the label; fields that share a tall cell keep their own writing line.
+pub fn snap_fields_to_cells(fields: &mut [ExtractedField], walls: &[GridWall], rails: &[GridRail]) {
+    let cells = fields
+        .iter()
+        .map(|field| enclosing_cell(field, walls, rails))
+        .collect::<Vec<_>>();
+    let mut occupancy = std::collections::HashMap::<_, usize>::new();
+    for (field, cell) in fields.iter().zip(&cells) {
+        if matches!(field.kind.as_str(), "checkbox" | "radio" | "signature") {
+            continue;
+        }
+        if let Some(cell) = cell {
+            *occupancy.entry(cell.key()).or_default() += 1;
+        }
+    }
+
+    for (field, cell) in fields.iter_mut().zip(cells) {
+        if matches!(field.kind.as_str(), "checkbox" | "radio" | "signature") {
+            continue;
+        }
+        let Some(cell) = cell else {
+            continue;
+        };
+        let right = cell.right - GRID_INSET;
+        if right - field.x >= 24.0 {
+            field.width = field.width.min(right - field.x);
+        }
+        let shared_tall = occupancy.get(&cell.key()).copied().unwrap_or(0) > 1
+            && cell.height() > SINGLE_LINE_CELL;
+        if !shared_tall && cell.height() >= 10.0 {
+            field.y = cell.bottom + CELL_INSET;
+            field.height = (cell.top - CELL_INSET - field.y).max(9.0);
+        } else {
+            field.y = field
+                .y
+                .clamp(cell.bottom + CELL_INSET, (cell.top - 10.0).max(cell.bottom));
+            if field.y + field.height > cell.top - CELL_INSET {
+                field.height = (cell.top - CELL_INSET - field.y).max(9.0);
+            }
+        }
+    }
+}
+
+fn enclosing_cell(field: &ExtractedField, walls: &[GridWall], rails: &[GridRail]) -> Option<Cell> {
+    let probe_x = field.x + field.width.min(12.0);
+    let probe_y = field.y + field.height.min(6.0);
+    let right = walls
+        .iter()
+        .filter(|wall| wall.x > field.x + 16.0 && wall.bottom <= probe_y && wall.top >= probe_y)
+        .map(|wall| wall.x)
+        .min_by(f32::total_cmp)?;
+    let left = walls
+        .iter()
+        .filter(|wall| wall.x < field.x + 4.0 && wall.bottom <= probe_y && wall.top >= probe_y)
+        .map(|wall| wall.x)
+        .max_by(f32::total_cmp)
+        .unwrap_or(0.0);
+    let top = rails
+        .iter()
+        .filter(|rail| rail.y > probe_y + 2.0 && rail.left <= probe_x && rail.right >= probe_x)
+        .map(|rail| rail.y)
+        .min_by(f32::total_cmp)?;
+    let bottom = rails
+        .iter()
+        .filter(|rail| rail.y < probe_y + 4.0 && rail.left <= probe_x && rail.right >= probe_x)
+        .map(|rail| rail.y)
+        .max_by(f32::total_cmp)?;
+    (top - bottom >= 8.0).then_some(Cell {
+        left,
+        bottom,
+        right,
+        top,
+    })
 }
 
 pub(super) fn extract_flat_page(
@@ -201,16 +311,15 @@ fn infer_labelled_fields(
                 continue;
             }
             let kind = infer_kind(&label.text).to_owned();
-            let height = if kind == "address" { 20.0 } else { 13.0 };
             fields.push(ExtractedField {
                 key: format!("label-{page_number}-{row_index}-{label_index}"),
                 kind,
                 label: label.text.clone(),
                 page_number,
                 x,
-                y: (label.bottom - 2.0).max(24.0),
+                y: (label.bottom - 1.0).max(24.0),
                 width,
-                height,
+                height: 12.0,
             });
         }
 
@@ -425,7 +534,11 @@ fn writable_start(row: &[&TextLine], after_colon: f32, until: f32) -> f32 {
         };
         left = right + 3.0;
     }
-    left
+    if left + LABEL_GAP + MIN_LABELLED_WIDTH < until {
+        left + LABEL_GAP
+    } else {
+        left
+    }
 }
 
 fn field_left_after(glyphs: &[Glyph], colon_index: usize) -> f32 {
@@ -840,6 +953,104 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    #[test]
+    fn a_lone_field_fills_its_printed_cell() {
+        let mut fields = vec![ExtractedField {
+            key: "account".to_owned(),
+            label: "Account Number".to_owned(),
+            kind: "number".to_owned(),
+            page_number: 1,
+            x: 105.7,
+            y: 509.6,
+            width: 185.4,
+            height: 12.0,
+        }];
+        snap_fields_to_cells(
+            &mut fields,
+            &[
+                GridWall {
+                    x: 26.9,
+                    bottom: 506.3,
+                    top: 521.9,
+                },
+                GridWall {
+                    x: 296.0,
+                    bottom: 506.3,
+                    top: 521.9,
+                },
+            ],
+            &[
+                GridRail {
+                    y: 506.3,
+                    left: 27.4,
+                    right: 296.0,
+                },
+                GridRail {
+                    y: 521.9,
+                    left: 27.4,
+                    right: 296.0,
+                },
+            ],
+        );
+        assert!((fields[0].y - 508.3).abs() < 0.2);
+        assert!(fields[0].y + fields[0].height <= 520.0);
+        assert!(fields[0].x + fields[0].width < 292.0);
+    }
+
+    #[test]
+    fn shared_tall_cells_keep_each_writing_line() {
+        let mut fields = vec![
+            ExtractedField {
+                key: "first".to_owned(),
+                label: "First Name".to_owned(),
+                kind: "text".to_owned(),
+                page_number: 1,
+                x: 81.0,
+                y: 558.0,
+                width: 55.0,
+                height: 12.0,
+            },
+            ExtractedField {
+                key: "dob".to_owned(),
+                label: "Date of Birth".to_owned(),
+                kind: "date".to_owned(),
+                page_number: 1,
+                x: 239.0,
+                y: 535.0,
+                width: 80.0,
+                height: 12.0,
+            },
+        ];
+        let walls = [
+            GridWall {
+                x: 26.9,
+                bottom: 534.4,
+                top: 570.9,
+            },
+            GridWall {
+                x: 565.4,
+                bottom: 534.4,
+                top: 570.9,
+            },
+        ];
+        let rails = [
+            GridRail {
+                y: 534.4,
+                left: 27.4,
+                right: 565.4,
+            },
+            GridRail {
+                y: 570.9,
+                left: 27.4,
+                right: 565.4,
+            },
+        ];
+        snap_fields_to_cells(&mut fields, &walls, &rails);
+        assert!(fields[0].y > 550.0);
+        assert!(fields[1].y < 545.0);
+        assert!(fields[0].height <= 16.0);
     }
 
     #[test]

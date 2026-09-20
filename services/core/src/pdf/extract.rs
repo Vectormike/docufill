@@ -110,10 +110,12 @@ impl PdfEngine {
             }
 
             let walls = grid_walls(&page);
+            let rails = grid_rails(&page);
             let page_text = page.text().map_err(AppError::internal)?;
             let (page_segments, mut inferred_fields) =
                 super::flat::extract_flat_page(&page_text, page_number, page.width().value)?;
             super::flat::snap_fields_to_grid(&mut inferred_fields, &walls);
+            super::flat::snap_fields_to_cells(&mut inferred_fields, &walls, &rails);
             if fields.len() == page_fields_before {
                 fields.extend(inferred_fields);
             }
@@ -189,6 +191,28 @@ fn grid_walls(page: &PdfPage<'_>) -> Vec<super::flat::GridWall> {
         }
     }
     walls
+}
+
+fn grid_rails(page: &PdfPage<'_>) -> Vec<super::flat::GridRail> {
+    let mut rails = Vec::new();
+    for object in page.objects().iter() {
+        if object.object_type() != PdfPageObjectType::Path {
+            continue;
+        }
+        let Ok(bounds) = object.bounds() else {
+            continue;
+        };
+        let width = bounds.width().value;
+        let height = bounds.height().value;
+        if height < 2.0 && width >= 24.0 {
+            rails.push(super::flat::GridRail {
+                y: bounds.bottom().value,
+                left: bounds.left().value,
+                right: bounds.left().value + width,
+            });
+        }
+    }
+    rails
 }
 
 fn field_kind(kind: PdfFormFieldType) -> &'static str {
@@ -301,7 +325,8 @@ mod tests {
             .find(|field| field.label == "Email Address")
             .expect("email");
         assert_eq!(email.kind, "email");
-        assert!(email.height <= 16.5);
+        assert!(email.y >= 474.5);
+        assert!(email.y + email.height <= 491.0);
         let new_phone = extracted
             .fields
             .iter()
@@ -309,12 +334,16 @@ mod tests {
             .expect("new phone");
         assert!(new_phone.width < 70.0);
         assert!(new_phone.x + new_phone.width < 456.0);
+        assert!(new_phone.y >= 344.5);
+        assert!(new_phone.y + new_phone.height <= 359.0);
         let address = extracted
             .fields
             .iter()
             .find(|field| field.label == "Home/Office Address")
             .expect("address");
         assert!(address.width > 300.0);
+        assert!(address.y >= 458.5);
+        assert!(address.y + address.height <= 475.5);
         let title = extracted
             .fields
             .iter()
@@ -322,7 +351,8 @@ mod tests {
             .expect("title");
         assert!(title.x > 150.0);
         assert!(title.width < 420.0);
-        assert!(title.height <= 14.0);
+        assert!(title.y >= 570.5);
+        assert!(title.y + title.height <= 595.5);
         let first = extracted
             .fields
             .iter()
@@ -330,6 +360,7 @@ mod tests {
             .expect("first");
         assert!(first.y < 570.0);
         assert!(first.width < 80.0);
+        assert!(first.x > 79.6 + 4.0);
     }
 
     #[test]

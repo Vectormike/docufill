@@ -6,5 +6,5 @@ mod signing;
 
 pub use extract::{ExtractedDocument, ExtractedField, PdfEngine, TextSegment, infer_kind};
 pub use fill::{FieldPlacement, SignaturePlacement, fit_text, render_answers};
-pub use flat::{GridWall, snap_fields_to_grid};
+pub use flat::{GridRail, GridWall, snap_fields_to_cells, snap_fields_to_grid};
 pub use page_image::RenderedPage;

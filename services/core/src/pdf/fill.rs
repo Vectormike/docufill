@@ -190,11 +190,10 @@ pub fn render_answers(
                 ))
             })?;
             let line_height = fitted.font_size * 1.12;
-            let first_baseline = if fitted.lines.len() == 1 {
-                placement.y + inset + 0.8 * scale
-            } else {
-                placement.y + placement.height - fitted.font_size - scale
-            };
+            let block_height = fitted.lines.len() as f32 * line_height;
+            let first_baseline = placement.y
+                + (placement.height - block_height).max(0.0) / 2.0
+                + fitted.font_size * 0.18;
             let max_width = (placement.width - inset * 2.0).max(4.0 * scale);
             for (line_index, line) in fitted.lines.iter().enumerate() {
                 let text_width = estimated_width(line, fitted.font_size).min(max_width);
